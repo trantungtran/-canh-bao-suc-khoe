@@ -28,6 +28,11 @@ jobs:
         working-directory: app
         run: |
           flutter pub get
+          # Thu vien Bluetooth cu dang khai bao compileSdk thap -> nang len 36 cho khop Android moi
+          for f in $(find "$HOME/.pub-cache/hosted" -path '*/android/build.gradle*' 2>/dev/null); do
+            sed -i -E 's/compileSdk(Version)?( *= *| +)[0-9]+/compileSdk\2 36/' "$f"
+          done
+          grep -rhE 'compileSdk' "$HOME"/.pub-cache/hosted/*/flutter_blue_plus*/android/build.gradle* || true
           flutter build apk --release
           cp build/app/outputs/flutter-apk/app-release.apk ../CanhBaoSucKhoe.apk
       - name: Dang file APK len muc Releases
