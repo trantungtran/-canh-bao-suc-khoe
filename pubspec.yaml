@@ -1,0 +1,19 @@
+name: canh_bao_suc_khoe
+description: He thong canh bao som suc khoe - app Android v3 (ket noi BLE voi HEALTH_BW16).
+publish_to: 'none'
+version: 3.0.0+3
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Giu dung phien ban de ma nguon khong bi loi khi thu vien doi API
+  flutter_blue_plus: 1.35.5
+  webview_flutter: ^4.10.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/index.html

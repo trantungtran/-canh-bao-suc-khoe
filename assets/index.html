@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hệ thống cảnh báo sớm sức khỏe – v10</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: mot cot rong nhu man hinh dien thoai, can giua tren desktop; 3 man: chon nguoi do -> nhap ho so -> do */
+:root {
+  --bg: #0a1120;
+  --surface: #121c2e;
+  --surface-hi: #18253b;
+  --line: #22314b;
+  --text: #e6edf7;
+  --muted: #8794ab;
+  --heart: #ff5470;
+  --oxygen: #3fa9f5;
+  --ok: #2fcf98;
+  --watch: #f3c440;
+  --warn: #ff8a3d;
+  --danger: #ff4d4d;
+  --font-ui: "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { background: var(--bg); }
+body {
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 12px 40px;
+}
+.app, .stack { max-width: 440px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.stack { width: 100%; }
+
+button:focus-visible, summary:focus-visible, input:focus-visible, label:focus-within { outline: 2px solid var(--oxygen); outline-offset: 2px; }
+
+/* Thuong hieu */
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.brand-mark { width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(135deg, var(--heart), var(--oxygen)); display: grid; place-items: center; flex: none; }
+.brand-mark svg { width: 20px; height: 20px; }
+.brand h1 { font-size: 16px; font-weight: 800; margin: 0; letter-spacing: -0.01em; line-height: 1.25; text-wrap: balance; }
+.brand small { display: block; color: var(--muted); font-size: 11.5px; font-weight: 500; }
+
+header.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 6px; }
+.tabs { display: flex; background: var(--surface); border-radius: 12px; padding: 3px; }
+.tabs button { flex: 1; border: 0; background: transparent; color: var(--muted); font: 600 13px var(--font-ui); padding: 8px 12px; border-radius: 9px; cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--surface-hi); color: var(--text); }
+
+.avatar { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font: 700 15px var(--font-ui); color: #08111f; flex: none; }
+.who { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--text); border-radius: 999px; padding: 3px 12px 3px 3px; cursor: pointer; font: 600 13px var(--font-ui); max-width: 52%; }
+.who .avatar { width: 30px; height: 30px; font-size: 13px; }
+.who span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.card { background: var(--surface); border-radius: 20px; padding: 16px; }
+.card-title { font-weight: 700; font-size: 15px; margin: 0; }
+.eyebrow { font: 500 11px var(--font-data); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.btn { border: 0; cursor: pointer; font: 600 14px var(--font-ui); padding: 11px 16px; border-radius: 12px; background: var(--surface-hi); color: var(--text); }
+.btn.primary { background: var(--oxygen); color: #04121f; }
+.btn.ghost { background: transparent; color: var(--muted); }
+.btn.danger { background: transparent; color: var(--danger); border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ===== Man chon nguoi do ===== */
+.hero-q { margin: 18px 0 2px; font-size: 24px; font-weight: 800; letter-spacing: -0.015em; text-wrap: balance; }
+.hero-sub { margin: 0; color: var(--muted); }
+.plist { display: flex; flex-direction: column; gap: 10px; }
+.prow { display: flex; align-items: center; gap: 12px; background: var(--surface); border-radius: 18px; padding: 12px; }
+.prow .pick { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; border: 0; background: transparent; color: var(--text); text-align: left; cursor: pointer; padding: 0; font: inherit; }
+.prow .pick b { display: block; font-size: 15px; }
+.prow .pick span { color: var(--muted); font-size: 12.5px; }
+.tag { font: 500 10.5px var(--font-data); letter-spacing: .05em; text-transform: uppercase; color: var(--watch); background: rgba(243,196,64,.1); padding: 2px 7px; border-radius: 6px; margin-left: 6px; vertical-align: 2px; }
+.icon-btn { width: 36px; height: 36px; border-radius: 10px; border: 0; background: var(--surface-hi); color: var(--muted); display: grid; place-items: center; cursor: pointer; flex: none; }
+.icon-btn svg { width: 17px; height: 17px; }
+.add-row { display: flex; align-items: center; justify-content: center; gap: 8px; border: 1.5px dashed var(--line); border-radius: 18px; padding: 14px; background: transparent; color: var(--oxygen); font: 600 14px var(--font-ui); cursor: pointer; }
+.privacy { font-size: 12.5px; color: var(--muted); text-align: center; margin: 4px 0 0; }
+
+/* ===== Man nhap ho so ===== */
+.steps { display: flex; gap: 6px; }
+.steps i { flex: 1; height: 4px; border-radius: 4px; background: var(--line); }
+.steps i.on { background: var(--oxygen); }
+.wiz-head .eyebrow { display: block; margin-top: 14px; }
+.wiz-head h2 { margin: 4px 0 2px; font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
+.wiz-head p { margin: 0; color: var(--muted); font-size: 13.5px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > span { font-size: 13px; color: var(--muted); font-weight: 500; }
+.input { width: 100%; background: var(--surface); border: 1px solid var(--line); color: var(--text); border-radius: 12px; padding: 12px 14px; font: 500 16px var(--font-ui); }
+.input:focus { border-color: var(--oxygen); outline: none; }
+.with-unit { position: relative; }
+.with-unit em { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font: 500 13px var(--font-data); color: var(--muted); font-style: normal; pointer-events: none; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.seg button { border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: 12px; padding: 12px; font: 600 14px var(--font-ui); cursor: pointer; }
+.seg button[aria-pressed="true"] { border-color: var(--oxygen); color: var(--text); background: color-mix(in srgb, var(--oxygen) 12%, var(--surface)); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.bmi { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.bmi b { font: 700 30px var(--font-ui); font-variant-numeric: tabular-nums; }
+.bmi .scale { flex: 1; }
+.bmi-bar { height: 8px; border-radius: 8px; background: linear-gradient(90deg, var(--oxygen) 0 26%, var(--ok) 26% 46%, var(--watch) 46% 60%, var(--warn) 60% 100%); position: relative; margin-top: 8px; }
+.bmi-bar i { position: absolute; top: -4px; width: 4px; height: 16px; border-radius: 3px; background: var(--text); transform: translateX(-50%); transition: left .3s; }
+.bmi-labels { display: flex; justify-content: space-between; font: 500 10.5px var(--font-data); color: var(--muted); margin-top: 6px; }
+.opts { display: flex; flex-direction: column; gap: 8px; }
+.opt { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; cursor: pointer; }
+.opt input { accent-color: var(--oxygen); width: 18px; height: 18px; flex: none; margin: 0; }
+.opt b { display: block; font-size: 14px; font-weight: 600; }
+.opt span { font-size: 12.5px; color: var(--muted); }
+.opt:has(input:checked) { border-color: var(--oxygen); background: color-mix(in srgb, var(--oxygen) 9%, var(--surface)); }
+.err { color: var(--danger); font-size: 13px; margin: 0; min-height: 1em; }
+.wiz-actions { display: flex; gap: 10px; }
+.wiz-actions .btn { flex: 1; }
+
+/* ===== Man do ===== */
+.conn { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; }
+.conn-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex: none; box-shadow: 0 0 0 4px rgba(135,148,171,.15); }
+.conn-dot.sim { background: var(--watch); box-shadow: 0 0 0 4px rgba(243,196,64,.18); }
+.conn-dot.on { background: var(--ok); box-shadow: 0 0 0 4px rgba(47,207,152,.18); }
+.conn-text { flex: 1; min-width: 0; }
+.conn-text b { display: block; font: 600 13.5px var(--font-data); }
+.conn-text span { font-size: 12.5px; color: var(--muted); }
+.conn .btn { padding: 9px 14px; font-size: 13px; }
+.linkbtn { border: 0; background: none; padding: 0; color: var(--oxygen); font: inherit; text-decoration: underline; cursor: pointer; }
+.conn-msg { font-size: 12.5px; color: var(--warn); margin: -6px 4px 0; }
+
+.profile-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.profile-strip div { background: var(--surface); border-radius: 12px; padding: 8px 10px; min-width: 0; }
+.profile-strip span { display: block; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.profile-strip b { font: 600 15px var(--font-ui); font-variant-numeric: tabular-nums; }
+
+.scenarios { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1px solid var(--line); background: transparent; color: var(--muted); font: 500 12.5px var(--font-ui); padding: 7px 11px; border-radius: 999px; cursor: pointer; }
+.chip[aria-pressed="true"] { border-color: var(--watch); color: var(--watch); background: rgba(243,196,64,.08); }
+.sim-label { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; gap: 8px; }
+.sim-label span:last-child { font-size: 12px; color: var(--muted); }
+
+.metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.metric { background: var(--surface); border-radius: 20px; padding: 16px; border: 1px solid transparent; }
+.metric.hr { border-color: rgba(255,84,112,.25); }
+.metric.sp { border-color: rgba(63,169,245,.25); }
+.metric-head { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 13px; }
+.metric-head svg { width: 18px; height: 18px; }
+.metric .value { display: flex; align-items: baseline; gap: 5px; margin-top: 6px; }
+.metric .num { font: 700 46px/1 var(--font-ui); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.metric .unit { font: 500 13px var(--font-data); }
+.metric.hr .unit { color: var(--heart); }
+.metric.sp .unit { color: var(--oxygen); }
+.beat { animation: beat 0.85s ease-in-out infinite; transform-origin: center; }
+@keyframes beat { 0%,100% { transform: scale(.88); } 30% { transform: scale(1.15); } }
+.metric .src { margin-top: 6px; font: 500 11.5px var(--font-data); color: var(--muted); min-height: 1em; }
+.finger-hint { text-align: center; color: var(--muted); font-size: 13px; margin: -4px 0 0; }
+
+.chart-block { display: flex; flex-direction: column; gap: 4px; }
+.chart-block + .chart-block { margin-top: 10px; }
+.chart-label { display: flex; justify-content: space-between; font: 500 11.5px var(--font-data); }
+.chart-label .k-hr { color: var(--heart); }
+.chart-label .k-sp { color: var(--oxygen); }
+.chart-label .range { color: var(--muted); }
+canvas.live { width: 100%; height: 74px; display: block; }
+
+.ai { background: linear-gradient(150deg, var(--surface-hi), var(--surface) 60%); border: 1px solid var(--line); }
+.ai-head { display: flex; align-items: center; gap: 8px; }
+.ai-head svg { width: 18px; height: 18px; color: var(--oxygen); }
+.pill { margin-left: auto; font: 600 12px var(--font-ui); padding: 4px 10px; border-radius: 999px; }
+.ai-body { display: flex; gap: 16px; align-items: center; margin-top: 14px; }
+.ring { position: relative; width: 82px; height: 82px; flex: none; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring .score { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.ring .score b { font: 700 24px/1 var(--font-ui); font-variant-numeric: tabular-nums; }
+.ring .score span { font-size: 10.5px; color: var(--muted); }
+.ai-summary { flex: 1; min-width: 0; margin: 0; }
+.stats { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.stat { background: rgba(255,255,255,.04); border-radius: 10px; padding: 6px 10px; font-size: 12px; color: var(--muted); }
+.stat b { color: var(--text); font: 600 12px var(--font-data); margin-left: 4px; }
+.risk { background: color-mix(in srgb, var(--warn) 12%, transparent); color: var(--warn); border-radius: 10px; padding: 6px 10px; font-size: 12px; font-weight: 600; }
+.findings { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+details.finding { border-radius: 14px; padding: 10px 12px; background: color-mix(in srgb, var(--sev) 9%, transparent); }
+details.finding summary { cursor: pointer; list-style: none; display: flex; flex-direction: column; gap: 2px; }
+details.finding summary::-webkit-details-marker { display: none; }
+details.finding summary b { color: var(--sev); font-size: 14px; display: flex; align-items: center; gap: 8px; }
+details.finding summary b::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--sev); flex: none; }
+details.finding summary span { color: var(--muted); font-size: 12px; padding-left: 16px; }
+details.finding p { margin: 8px 0 0; font-size: 13.5px; }
+details.finding p.advice::before { content: "Lời khuyên: "; font-weight: 600; color: var(--sev); }
+details.adjust { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+details.adjust summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--oxygen); list-style: none; }
+details.adjust summary::-webkit-details-marker { display: none; }
+/* ===== Do tong hop 30 giay ===== */
+.session { border: 1px solid color-mix(in srgb, var(--heart) 30%, transparent); display: flex; flex-direction: column; gap: 12px; }
+.ses-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.ses-how { margin: 0; font-size: 13.5px; color: var(--muted); }
+.ses-how b { color: var(--text); font-weight: 600; }
+.btn.wide { width: 100%; }
+.ses-chips { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.cchip { font: 600 12px var(--font-ui); padding: 5px 10px; border-radius: 999px; color: var(--muted); background: rgba(255,255,255,.05); display: inline-flex; align-items: center; gap: 6px; }
+.cchip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+.cchip.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.cchip.ok::before { background: var(--ok); }
+.cchip.bad { color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent); }
+.cchip.bad::before { background: var(--warn); }
+.ses-hr { margin-left: auto; font: 600 15px var(--font-data); color: var(--heart); font-variant-numeric: tabular-nums; }
+.ecg-wrap { position: relative; border-radius: 12px; overflow: hidden; background: #0d1626; }
+canvas.ecg { width: 100%; height: 120px; display: block; }
+.ecg-scale { position: absolute; right: 8px; bottom: 6px; font: 500 10.5px var(--font-data); color: var(--muted); }
+.ses-progress { display: flex; align-items: center; gap: 10px; }
+.ses-progress .bar { flex: 1; height: 8px; border-radius: 8px; background: var(--line); overflow: hidden; }
+.ses-progress .bar i { display: block; height: 100%; width: 0; background: var(--heart); border-radius: 8px; transition: width .4s; }
+.ses-progress span { font: 600 13px var(--font-data); font-variant-numeric: tabular-nums; min-width: 64px; text-align: right; }
+.ses-hint { margin: 0; font-size: 13px; color: var(--warn); min-height: 1.2em; }
+.res-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.res-grid div { background: rgba(255,255,255,.04); border-radius: 12px; padding: 10px; min-width: 0; }
+.res-grid span { display: block; font-size: 11.5px; color: var(--muted); }
+.res-grid b { font: 700 20px var(--font-ui); font-variant-numeric: tabular-nums; }
+.res-grid small { font: 500 11px var(--font-data); color: var(--muted); margin-left: 3px; }
+.res-sum { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; }
+.res-sum .pill { margin-left: 0; }
+.res-note { font-size: 12.5px; color: var(--muted); margin: 10px 0 0; }
+.ses-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+.ses-table th { text-align: left; font: 500 11px var(--font-data); color: var(--muted); text-transform: uppercase; letter-spacing: .05em; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+.ses-table td { padding: 8px 4px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.table-scroll { overflow-x: auto; }
+@media (max-width: 380px) { .res-grid { grid-template-columns: repeat(2, 1fr); } }
+
+details.adjust ul { margin: 8px 0 0; padding-left: 18px; font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; }
+details.adjust li b { color: var(--text); font-weight: 600; }
+
+.disclaimer { color: var(--muted); font-size: 12px; text-align: center; margin: 4px 8px 0; }
+
+.toast-wrap { position: fixed; top: calc(10px + env(safe-area-inset-top, 0px)); left: 0; right: 0; display: flex; justify-content: center; pointer-events: none; z-index: 20; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.toast { width: 100%; max-width: 420px; background: #1d2a42; border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; box-shadow: 0 12px 30px rgba(0,0,0,.45); display: flex; gap: 10px; transform: translateY(-160%); transition: transform .35s ease; pointer-events: auto; }
+.toast.show { transform: translateY(0); }
+.toast .app-ico { width: 30px; height: 30px; border-radius: 8px; flex: none; background: linear-gradient(135deg, var(--heart), var(--oxygen)); }
+.toast b { display: block; font-size: 13.5px; }
+.toast span { font-size: 12.5px; color: var(--muted); }
+.toast small { font: 500 10.5px var(--font-data); color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+
+.sample-note { font-size: 12.5px; color: var(--watch); background: rgba(243,196,64,.08); border-radius: 12px; padding: 9px 12px; margin: 0; }
+.summary-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.sum { background: var(--surface); border-radius: 14px; padding: 12px; }
+.sum span { font-size: 11.5px; color: var(--muted); display: block; }
+.sum b { font: 700 22px var(--font-ui); font-variant-numeric: tabular-nums; }
+canvas.hist { width: 100%; height: 170px; display: block; margin-top: 10px; }
+.card p.sub { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); }
+.empty { text-align: center; color: var(--muted); padding: 30px 12px; }
+.empty b { display: block; color: var(--text); font-size: 15px; margin-bottom: 4px; }
+
+@media (max-width: 380px) { .profile-strip { grid-template-columns: repeat(2, 1fr); } }
+@media (prefers-reduced-motion: reduce) { .beat { animation: none; } .toast, .bmi-bar i { transition: none; } }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ================= 1. CHON NGUOI DO ================= -->
+  <section id="scr-profiles" class="stack">
+    <div class="brand" style="padding-top:6px">
+      <div class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-5 4 10 2-5h6"/></svg></div>
+      <div><h1>Hệ thống cảnh báo sớm sức khỏe</h1><small>Nhịp tim · SpO2</small></div>
+    </div>
+    <div>
+      <h2 class="hero-q">Ai đang đo?</h2>
+      <p class="hero-sub">Mỗi người có hồ sơ và lịch sử riêng. AI dùng hồ sơ để đặt ngưỡng cảnh báo phù hợp với từng người.</p>
+    </div>
+    <div id="plist" class="plist"></div>
+    <button id="btn-add" class="add-row">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      Thêm người dùng
+    </button>
+    <p class="privacy">Thông tin hồ sơ chỉ lưu trên điện thoại này.</p>
+  </section>
+
+  <!-- ================= 2. NHAP HO SO ================= -->
+  <section id="scr-setup" class="stack" hidden>
+    <div class="wiz-head">
+      <div id="steps" class="steps"><i></i><i></i><i></i><i></i></div>
+      <span id="wiz-eyebrow" class="eyebrow">Bước 1/4</span>
+      <h2 id="wiz-title"></h2>
+      <p id="wiz-desc"></p>
+    </div>
+
+    <div id="step-1" class="stack">
+      <label class="field"><span>Họ và tên</span><input id="f-name" class="input" maxlength="30" autocomplete="off" placeholder="Ví dụ: Trần Văn An"></label>
+      <div class="field"><span>Giới tính</span>
+        <div class="seg"><button id="f-sex-nam" type="button" data-sex="nam" aria-pressed="false">Nam</button><button id="f-sex-nu" type="button" data-sex="nu" aria-pressed="false">Nữ</button></div>
+      </div>
+      <label class="field"><span>Năm sinh</span><input id="f-year" class="input" type="number" inputmode="numeric" placeholder="Ví dụ: 1985"></label>
+    </div>
+
+    <div id="step-2" class="stack" hidden>
+      <div class="grid2">
+        <label class="field"><span>Chiều cao</span><div class="with-unit"><input id="f-height" class="input" type="number" inputmode="decimal" placeholder="165"><em>cm</em></div></label>
+        <label class="field"><span>Cân nặng</span><div class="with-unit"><input id="f-weight" class="input" type="number" inputmode="decimal" placeholder="60"><em>kg</em></div></label>
+      </div>
+      <div class="card">
+        <div class="bmi">
+          <div><span class="eyebrow">Chỉ số BMI</span><br><b id="bmi-val">--</b></div>
+          <div class="scale"><span id="bmi-cat" style="font-size:13px;font-weight:600">Nhập chiều cao và cân nặng</span>
+            <div class="bmi-bar"><i id="bmi-mark" style="left:0;opacity:0"></i></div>
+            <div class="bmi-labels"><span>15</span><span>18.5</span><span>23</span><span>25</span><span>35</span></div>
+          </div>
+        </div>
+        <p class="sub">Phân loại theo chuẩn cho người châu Á của Tổ chức Y tế Thế giới.</p>
+      </div>
+    </div>
+
+    <div id="step-3" class="opts" hidden>
+      <label class="opt"><input type="radio" name="act" value="it"><div><b>Ít vận động</b><span>Chủ yếu ngồi, gần như không tập thể dục</span></div></label>
+      <label class="opt"><input type="radio" name="act" value="vua"><div><b>Vừa phải</b><span>Tập 1–3 buổi mỗi tuần</span></div></label>
+      <label class="opt"><input type="radio" name="act" value="nhieu"><div><b>Thường xuyên</b><span>Tập từ 4 buổi mỗi tuần</span></div></label>
+      <label class="opt"><input type="radio" name="act" value="vdv"><div><b>Vận động viên</b><span>Tập luyện cường độ cao hằng ngày</span></div></label>
+    </div>
+
+    <div id="step-4" class="stack" hidden>
+      <div class="opts">
+        <label class="opt"><input type="checkbox" value="huyetap"><div><b>Tăng huyết áp</b></div></label>
+        <label class="opt"><input type="checkbox" value="tieuduong"><div><b>Tiểu đường</b></div></label>
+        <label class="opt"><input type="checkbox" value="tim"><div><b>Bệnh tim</b><span>Bệnh mạch vành, suy tim, rối loạn nhịp...</span></div></label>
+        <label class="opt"><input type="checkbox" value="phoi"><div><b>Bệnh phổi mạn tính</b><span>Hen suyễn, COPD</span></div></label>
+        <label class="opt"><input type="checkbox" value="chenbeta"><div><b>Đang dùng thuốc chẹn beta</b><span>Thuốc làm chậm nhịp tim, ví dụ bisoprolol, metoprolol</span></div></label>
+        <label class="opt"><input type="checkbox" value="hutthuoc"><div><b>Hút thuốc lá</b></div></label>
+        <label id="opt-preg" class="opt" hidden><input type="checkbox" value="mangthai"><div><b>Đang mang thai</b></div></label>
+      </div>
+    </div>
+
+    <p id="wiz-err" class="err" role="alert"></p>
+    <div class="wiz-actions">
+      <button id="wiz-back" class="btn">Quay lại</button>
+      <button id="wiz-next" class="btn primary">Tiếp tục</button>
+    </div>
+    <button id="wiz-delete" class="btn danger" hidden>Xóa hồ sơ này</button>
+  </section>
+
+  <!-- ================= 3. MAN DO ================= -->
+  <section id="scr-main" class="stack" hidden>
+    <header class="top">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-5 4 10 2-5h6"/></svg></div>
+        <div><h1>Cảnh báo sớm sức khỏe</h1></div>
+      </div>
+      <button id="btn-who" class="who" title="Đổi người đo"><span id="who-ava" class="avatar"></span><span id="who-name"></span></button>
+    </header>
+    <nav class="tabs" role="tablist">
+      <button id="tab-live" role="tab" aria-selected="true">Đo trực tiếp</button>
+      <button id="tab-hist" role="tab" aria-selected="false">Lịch sử</button>
+    </nav>
+
+    <div id="view-live" class="stack">
+      <div class="card conn">
+        <span id="conn-dot" class="conn-dot"></span>
+        <div class="conn-text"><b>HEALTH_BW16</b><span id="conn-status">Chưa kết nối</span></div>
+        <button id="btn-connect" class="btn primary">Kết nối</button>
+      </div>
+      <p id="conn-msg" class="conn-msg" hidden></p>
+
+      <div id="profile-strip" class="profile-strip"></div>
+
+      <div id="sim-card" class="card" hidden>
+        <div class="sim-label"><span class="eyebrow">Chế độ demo · mô phỏng tình huống</span><span>Không cần phần cứng</span></div>
+        <div id="scenarios" class="scenarios"></div>
+      </div>
+
+      <div id="session-card" class="card session">
+        <div class="ses-head"><h2 class="card-title">Đo tổng hợp 30 giây</h2><span class="eyebrow">ECG + SpO2 cùng lúc</span></div>
+        <div id="ses-idle" class="stack">
+          <p class="ses-how">Kẹp thiết bị bằng hai tay: <b>ngón cái trái</b> đặt lên cảm biến ở cạnh trên, <b>ngón trỏ trái</b> chạm miếng vàng, <b>ngón trỏ và ngón giữa phải</b> chạm miếng đỏ và xanh ở cạnh dưới. Hai tay không chạm nhau, thả lỏng và giữ yên.</p>
+          <button id="ses-start" class="btn primary wide">Bắt đầu đo 30 giây</button>
+        </div>
+        <div id="ses-run" class="stack" hidden>
+          <div class="ses-chips"><span id="chip-ecg" class="cchip">Điện tim</span><span id="chip-ppg" class="cchip">Ngón cái</span><span id="ses-hr" class="ses-hr">-- BPM</span></div>
+          <div class="ecg-wrap"><canvas id="c-ecg" class="ecg"></canvas><span class="ecg-scale">25 mm/s · 4 giây</span></div>
+          <div class="ses-progress"><div class="bar"><i id="ses-bar"></i></div><span id="ses-left">30 giây</span></div>
+          <p id="ses-hint" class="ses-hint"></p>
+          <button id="ses-stop" class="btn">Dừng</button>
+        </div>
+        <div id="ses-done" class="stack" hidden>
+          <div id="ses-result"></div>
+          <button id="ses-again" class="btn primary wide">Đo lại</button>
+        </div>
+      </div>
+
+      <div class="metrics">
+        <div class="metric hr">
+          <div class="metric-head"><svg id="heart-ico" viewBox="0 0 24 24" fill="var(--heart)"><path d="M12 21s-7.5-4.6-9.6-9.3C.9 8.3 3 4.5 6.7 4.5c2.1 0 3.6 1.2 4.4 2.5.2.3.6.3.8 0 .8-1.3 2.3-2.5 4.4-2.5 3.7 0 5.8 3.8 4.3 7.2C19.5 16.4 12 21 12 21z"/></svg>Nhịp tim</div>
+          <div class="value"><span id="v-hr" class="num">--</span><span class="unit">BPM</span></div>
+          <div id="hr-src" class="src"></div>
+        </div>
+        <div class="metric sp">
+          <div class="metric-head"><svg viewBox="0 0 24 24" fill="var(--oxygen)"><path d="M12 2.5s-6.5 7.3-6.5 12a6.5 6.5 0 0 0 13 0c0-4.7-6.5-12-6.5-12z"/></svg>SpO2</div>
+          <div class="value"><span id="v-sp" class="num">--</span><span class="unit">%</span></div>
+        </div>
+      </div>
+      <p id="finger-hint" class="finger-hint" hidden>Đặt ngón tay lên cảm biến và giữ yên</p>
+
+      <div class="card">
+        <h2 class="card-title">2 phút gần nhất</h2>
+        <div class="chart-block" style="margin-top:10px">
+          <div class="chart-label"><span class="k-hr">NHỊP TIM</span><span class="range">40–160 BPM</span></div>
+          <canvas id="c-hr" class="live"></canvas>
+        </div>
+        <div class="chart-block">
+          <div class="chart-label"><span class="k-sp">SPO2</span><span class="range">80–100 %</span></div>
+          <canvas id="c-sp" class="live"></canvas>
+        </div>
+      </div>
+
+      <div id="ai-card" class="card ai"></div>
+
+      <p class="disclaimer">Hệ thống chỉ hỗ trợ theo dõi và cảnh báo sớm, không thay thế chẩn đoán của bác sĩ. Khi có triệu chứng bất thường, hãy đến cơ sở y tế.</p>
+    </div>
+
+    <div id="view-hist" class="stack" hidden></div>
+  </section>
+</div>
+
+<div class="toast-wrap"><div id="toast" class="toast" role="status" aria-live="polite">
+  <div class="app-ico"></div>
+  <div><small id="toast-who">Cảnh báo sức khỏe · bây giờ</small><b id="toast-title"></b><span id="toast-body"></span></div>
+</div></div>
+
+<script>
+// =====================================================================
+//  HO SO NGUOI DUNG
+// =====================================================================
+const STORE_KEY = 'hews_profiles_v1';
+const AVA_COLORS = ['#3fa9f5', '#2fcf98', '#f3c440', '#ff8a3d', '#c792ff', '#ff5470'];
+const ACT_LABEL = { it: 'Ít vận động', vua: 'Vận động vừa phải', nhieu: 'Vận động thường xuyên', vdv: 'Vận động viên' };
+const COND_LABEL = { huyetap: 'Tăng huyết áp', tieuduong: 'Tiểu đường', tim: 'Bệnh tim', phoi: 'Bệnh phổi mạn', chenbeta: 'Thuốc chẹn beta', hutthuoc: 'Hút thuốc', mangthai: 'Mang thai' };
+const thisYear = new Date().getFullYear();
+
+function exampleProfiles() {
+  return [
+    { id: 'ex-lan', name: 'Bà Lan', sex: 'nu', year: 1956, height: 152, weight: 57, act: 'it', cond: ['huyetap', 'phoi'], example: true, color: AVA_COLORS[3] },
+    { id: 'ex-minh', name: 'Minh', sex: 'nam', year: 2008, height: 172, weight: 61, act: 'vdv', cond: [], example: true, color: AVA_COLORS[1] },
+  ];
+}
+let profiles = [];
+function loadProfiles() {
+  try { const raw = localStorage.getItem(STORE_KEY); if (raw) { profiles = JSON.parse(raw); return; } } catch (e) {}
+  profiles = exampleProfiles();
+}
+function saveProfiles() { try { localStorage.setItem(STORE_KEY, JSON.stringify(profiles)); } catch (e) {} }
+
+const histories = {}; // lich su theo tung nguoi (ho so that duoc luu vao may)
+function loadArr(key) { try { const a = JSON.parse(localStorage.getItem(key) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+function saveArr(key, a) { try { localStorage.setItem(key, JSON.stringify(a)); } catch (e) {} }
+function historyOf(p) {
+  if (!histories[p.id]) {
+    const c = personalize(p);
+    histories[p.id] = p.example ? sampleHistory(c.expectedRhr, c.sp.watch === null ? 92.6 : 97.2)
+      : loadArr('hews_hist_' + p.id).filter(m => m.t > Date.now() - 8 * 864e5);
+  }
+  return histories[p.id];
+}
+function saveHistory(p) { if (p && !p.example) saveArr('hews_hist_' + p.id, histories[p.id] || []); }
+
+const bmiOf = p => p.weight / (p.height / 100) ** 2;
+function bmiCategory(b) {
+  if (b < 18.5) return ['Thấp', 'var(--oxygen)'];
+  if (b < 23) return ['Cân đối', 'var(--ok)'];
+  if (b < 25) return ['Hơi cao', 'var(--watch)'];
+  return ['Cao', 'var(--warn)'];
+}
+
+// Ngưỡng cảnh báo cá nhân hóa theo hồ sơ
+function personalize(p) {
+  const age = thisYear - p.year, bmi = bmiOf(p), c = new Set(p.cond);
+  const cfg = {
+    age, bmi, maxHr: 220 - age, expectedRhr: 72,
+    sp: { danger: 90, warning: 94, watch: 95 },
+    hrHigh: { warning: 100, danger: 130 },
+    hrLow: { watch: 50, danger: 40 },
+    irregularCv: 0.12, riskMult: 1, notes: [], risks: [],
+  };
+  if (p.act === 'it') cfg.expectedRhr = 76;
+  if (p.act === 'nhieu') { cfg.expectedRhr = 64; cfg.hrLow.watch = 45; cfg.notes.push(['Nhịp chậm', 'chỉ cảnh báo dưới 45 BPM vì bạn tập luyện thường xuyên']); }
+  if (p.act === 'vdv') { cfg.expectedRhr = 56; cfg.hrLow = { watch: 40, danger: 35 }; cfg.notes.push(['Nhịp chậm', 'chỉ cảnh báo dưới 40 BPM vì tim vận động viên đập chậm hơn bình thường']); }
+  if (c.has('chenbeta')) { cfg.hrLow.watch = Math.min(cfg.hrLow.watch, 45); cfg.expectedRhr -= 6; cfg.notes.push(['Thuốc chẹn beta', 'thuốc làm nhịp tim chậm hơn, ngưỡng nhịp chậm hạ còn ' + cfg.hrLow.watch + ' BPM']); }
+  if (c.has('phoi')) { cfg.sp = { danger: 85, warning: 88, watch: null }; cfg.riskMult += 0.15; cfg.risks.push('Bệnh phổi mạn'); cfg.notes.push(['SpO2', 'người bệnh phổi mạn thường có mục tiêu 88–92%, nên chỉ cảnh báo khi dưới 88%']); }
+  if (c.has('mangthai')) { cfg.hrHigh.warning = 110; cfg.expectedRhr += 10; cfg.notes.push(['Mang thai', 'nhịp tim tăng 10–20 BPM là bình thường, ngưỡng nhịp nhanh nâng lên 110 BPM']); }
+  const dangerByAge = Math.min(130, Math.max(110, Math.round(cfg.maxHr * 0.8)));
+  if (dangerByAge < 130) { cfg.hrHigh.danger = dangerByAge; cfg.notes.push(['Nhịp nhanh nguy hiểm', `hạ còn ${dangerByAge} BPM theo tuổi (nhịp tối đa ước tính ${cfg.maxHr} BPM)`]); }
+  if (c.has('tim')) { cfg.irregularCv = 0.10; cfg.riskMult += 0.3; cfg.risks.push('Bệnh tim'); cfg.notes.push(['Nhịp không đều', 'phát hiện nhạy hơn vì bạn có bệnh tim']); }
+  if (c.has('huyetap')) { cfg.riskMult += 0.15; cfg.risks.push('Tăng huyết áp'); }
+  if (c.has('tieuduong')) { cfg.riskMult += 0.15; cfg.risks.push('Tiểu đường'); }
+  if (c.has('hutthuoc')) { cfg.riskMult += 0.15; cfg.risks.push('Hút thuốc'); }
+  if (age >= 60) { cfg.riskMult += 0.15; cfg.risks.push(`${age} tuổi`); }
+  if (bmi >= 25) { cfg.riskMult += 0.15; cfg.risks.push(`BMI cao (${bmi.toFixed(1)})`); }
+  else if (bmi >= 23) { cfg.riskMult += 0.05; cfg.risks.push(`BMI hơi cao (${bmi.toFixed(1)})`); }
+  return cfg;
+}
+
+// =====================================================================
+//  AI ENGINE (giong ai_engine.dart, them nguong ca nhan hoa)
+// =====================================================================
+const SEV = ['normal', 'watch', 'warning', 'danger'];
+const SEV_LABEL = { normal: 'Bình thường', watch: 'Cần theo dõi', warning: 'Cảnh báo', danger: 'Nguy hiểm' };
+const SEV_COLOR = { normal: 'var(--ok)', watch: 'var(--watch)', warning: 'var(--warn)', danger: 'var(--danger)' };
+const MIN_LEARN = 60;
+const median = xs => { const s = [...xs].sort((a, b) => a - b), n = s.length; if (!n) return 0; return n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2; };
+const mean = xs => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0;
+const sd = xs => { if (xs.length < 2) return 0; const m = mean(xs); return Math.sqrt(xs.reduce((a, b) => a + (b - m) ** 2, 0) / (xs.length - 1)); };
+const pct = (xs, p) => { const s = [...xs].sort((a, b) => a - b); if (!s.length) return 0; return s[Math.round((s.length - 1) * p)]; };
+const isValid = r => r.finger && r.hr > 0 && r.spo2 > 0;
+
+function baseline(history, cfg) {
+  const rec = history.filter(m => m.t > Date.now() - 7 * 864e5);
+  if (rec.length < MIN_LEARN) return { hrMean: cfg.expectedRhr, hrSd: 10, spo2Mean: cfg.sp.watch === null ? 92 : 97, minutes: rec.length, personal: false };
+  return { hrMean: mean(rec.map(m => m.ha)), hrSd: Math.max(sd(rec.map(m => m.ha)), 4), spo2Mean: median(rec.map(m => m.sa)), minutes: rec.length, personal: true };
+}
+
+function analyze(live, history, cfg) {
+  const base = baseline(history, cfg);
+  const valid = live.filter(isValid);
+  const recent = valid.slice(-30);
+  if (recent.length < 10) return { ready: false, summary: 'Đặt ngón tay lên cảm biến và giữ yên khoảng 15 giây.', learned: base.minutes, findings: [] };
+
+  let jumps = 0;
+  for (let i = 1; i < recent.length; i++) if (Math.abs(recent[i].hr - recent[i - 1].hr) > 20) jumps++;
+  const quality = 1 - jumps / (recent.length - 1);
+  const hrMed = median(recent.map(r => r.hr)), spMed = median(recent.map(r => r.spo2));
+  if (quality < 0.7) return { ready: true, reliable: false, summary: 'Tín hiệu đang nhiễu. Hãy giữ yên ngón tay, không ấn quá mạnh.', learned: base.minutes, findings: [] };
+
+  const F = [], R = Math.round;
+  const add = (id, sev, title, detail, advice) => F.push({ id, sev, title, detail, advice });
+  const { sp, hrHigh, hrLow } = cfg;
+
+  // Tang 1: nguong y khoa (da ca nhan hoa)
+  if (spMed < sp.danger) add('spo2_low', 'danger', `SpO2 rất thấp (${R(spMed)}%)`, `Dưới ${sp.danger}% là thiếu oxy máu nghiêm trọng với hồ sơ của bạn.`, 'Đo lại ngay. Nếu vẫn thấp hoặc có khó thở, tức ngực, môi tím: gọi cấp cứu 115 hoặc đến cơ sở y tế gần nhất.');
+  else if (spMed < sp.warning) add('spo2_low', 'warning', `SpO2 thấp (${R(spMed)}%)`, `Thấp hơn ngưỡng ${sp.warning}% đặt cho hồ sơ của bạn.`, 'Ngồi nghỉ, thở sâu và đo lại sau 5 phút. Nếu kéo dài, hãy đi khám.');
+  else if (sp.watch !== null && spMed < sp.watch) add('spo2_low', 'watch', `SpO2 hơi thấp (${R(spMed)}%)`, 'Hơi dưới mức thường gặp (95–100%).', 'Theo dõi thêm. Kiểm tra ngón tay có lạnh hoặc đặt sai vị trí không.');
+
+  if (hrMed > hrHigh.danger) add('hr_high', 'danger', `Nhịp tim rất nhanh (${R(hrMed)} BPM)`, `Vượt ngưỡng ${hrHigh.danger} BPM đặt theo tuổi của bạn.`, 'Nếu đang nghỉ ngơi mà nhịp vẫn rất nhanh, kèm chóng mặt, đau ngực, khó thở: đi cấp cứu ngay.');
+  else if (hrMed > hrHigh.warning) add('hr_high', 'warning', `Nhịp tim nhanh (${R(hrMed)} BPM)`, `Trên ${hrHigh.warning} BPM khi nghỉ là nhịp nhanh với hồ sơ của bạn.`, 'Nghỉ 10 phút rồi đo lại. Nguyên nhân thường gặp: vận động, cà phê, lo âu, sốt, mất nước. Nếu thường xuyên xảy ra, nên khám tim mạch.');
+  if (hrMed < hrLow.danger) add('hr_low', 'danger', `Nhịp tim rất chậm (${R(hrMed)} BPM)`, `Dưới ${hrLow.danger} BPM có thể khiến não và cơ thể thiếu máu.`, 'Nếu có choáng, ngất, mệt lả: đi cấp cứu ngay.');
+  else if (hrMed < hrLow.watch) add('hr_low', 'watch', `Nhịp tim chậm (${R(hrMed)} BPM)`, `Dưới ngưỡng ${hrLow.watch} BPM đặt cho hồ sơ của bạn.`, 'Nếu kèm mệt mỏi, chóng mặt, hãy đi khám tim mạch.');
+
+  // Tang 2: so voi chinh nguoi do
+  if (base.personal) {
+    const z = (hrMed - base.hrMean) / base.hrSd;
+    if (Math.abs(z) > 2.5 && !F.some(f => f.id.startsWith('hr_')))
+      add('hr_personal', 'watch', z > 0 ? 'Nhịp tim cao bất thường so với bạn' : 'Nhịp tim thấp bất thường so với bạn',
+        `Bình thường bạn ở mức ~${R(base.hrMean)} BPM, hiện tại ${R(hrMed)} BPM (lệch ${Math.abs(z).toFixed(1)} độ lệch chuẩn).`,
+        'AI nhận thấy khác thói quen của bạn. Nghỉ ngơi và đo lại; để ý các dấu hiệu sốt, mệt, căng thẳng.');
+    if (base.spo2Mean - spMed >= 4 && !F.some(f => f.id === 'spo2_low'))
+      add('spo2_personal', 'watch', 'SpO2 giảm so với mức thường ngày', `Mức thường của bạn ~${R(base.spo2Mean)}%, hiện tại ${R(spMed)}%.`, 'Theo dõi thêm; nếu kèm ho, sốt, khó thở nên đi khám.');
+  }
+
+  // Tang 3: phan tich nhip
+  const ibis = valid.map(r => r.ibi).filter(v => v > 0).slice(-60);
+  let rmssd = null, cv = null;
+  if (ibis.length >= 20) {
+    let s = 0; for (let i = 1; i < ibis.length; i++) s += (ibis[i] - ibis[i - 1]) ** 2;
+    rmssd = Math.sqrt(s / (ibis.length - 1));
+    cv = sd(ibis) / mean(ibis);
+    if (cv > cfg.irregularCv && quality > 0.85) {
+      const heart = cfg.risks.includes('Bệnh tim');
+      add('irregular', (cv > 0.2 || heart) ? 'warning' : 'watch', 'Nhịp tim có dấu hiệu không đều',
+        `Khoảng cách giữa các nhịp dao động ${R(cv * 100)}% (bình thường thường dưới 10%). Đây có thể là gợi ý của rối loạn nhịp (ví dụ rung nhĩ), nhưng cũng có thể do cử động.`,
+        heart ? 'Vì bạn có bệnh tim, hãy đo lại và báo cho bác sĩ điều trị sớm, nên làm điện tâm đồ (ECG).' : 'Ngồi yên và đo lại 2–3 lần. Nếu vẫn lặp lại, nên đi khám và làm điện tâm đồ (ECG).');
+    }
+  }
+
+  // Tang 4: xu huong
+  const thr = base.spo2Mean - 3;
+  let dips = 0, run = 0;
+  for (const r of valid.slice(-300)) { if (r.spo2 <= thr) { run++; if (run === 8) dips++; } else run = 0; }
+  if (dips >= 3 && !F.some(f => f.id === 'spo2_low'))
+    add('apnea_live', 'watch', 'SpO2 tụt lặp lại nhiều lần', `Trong vài phút gần đây SpO2 đã tụt ≥3% so với mức nền ${dips} lần rồi hồi phục. Nếu đo khi đang ngủ, đây là kiểu thường gặp ở ngưng thở khi ngủ.`, 'Kiểm tra lại cách đeo cảm biến. Nếu lặp lại nhiều đêm, kèm ngáy to hoặc buồn ngủ ban ngày, nên đi khám chuyên khoa giấc ngủ.');
+  const trend = restingTrend(history);
+  if (trend !== null && trend >= 8)
+    add('rhr_trend', 'watch', 'Nhịp tim nghỉ tăng dần', `Nhịp tim nghỉ 3 ngày gần đây cao hơn ~${R(trend)} BPM so với trước đó.`, 'Ngủ đủ, uống đủ nước, theo dõi nhiệt độ cơ thể.');
+
+  F.sort((a, b) => SEV.indexOf(b.sev) - SEV.indexOf(a.sev));
+  const W = { normal: 0, watch: 12, warning: 28, danger: 50 };
+  const raw = F.reduce((a, f) => a + W[f.sev], 0);
+  const score = Math.min(100, Math.round(raw * cfg.riskMult));
+  const level = F.length ? F[0].sev : 'normal';
+  const summary = F.length ? F[0].title : (base.personal
+    ? 'Các chỉ số đều trong ngưỡng bình thường và phù hợp với thói quen của bạn.'
+    : `Các chỉ số trong ngưỡng bình thường. AI đang học thói quen của bạn (${base.minutes}/${MIN_LEARN} phút).`);
+  return { ready: true, reliable: true, score, level, findings: F, summary, rmssd, cv, learned: base.minutes };
+}
+
+function dayKey(t) { const d = new Date(t); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; }
+function restingByDay(history) {
+  const by = new Map();
+  for (const m of history) { const k = dayKey(m.t); if (!by.has(k)) by.set(k, { t: m.t, v: [] }); by.get(k).v.push(m.ha); }
+  return [...by.values()].filter(d => d.v.length >= 15).map(d => ({ t: d.t, rhr: pct(d.v, 0.25) }));
+}
+function restingTrend(history) {
+  const days = restingByDay(history);
+  if (days.length < 4) return null;
+  const recent = days.slice(-3).map(d => d.rhr), earlier = days.slice(0, -3).map(d => d.rhr);
+  if (earlier.length < 2) return null;
+  return mean(recent) - mean(earlier);
+}
+
+// Du lieu mau 7 ngay cho ho so vi du
+const rnd = a => (Math.random() * 2 - 1) * a;
+function sampleHistory(rhr, spBase) {
+  const out = [], now = new Date();
+  for (let d = 6; d >= 0; d--) {
+    const dayRhr = rhr + (6 - d) * 0.4 + rnd(1.5);
+    for (const h of [7.5, 12.5, 18, 21.5]) {
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - d, Math.floor(h), (h % 1) * 60).getTime();
+      if (start > now.getTime()) continue;
+      const len = 18 + Math.floor(Math.random() * 10), act = h === 18 ? 9 : h === 12.5 ? 5 : 0;
+      for (let i = 0; i < len; i++) {
+        const sa = spBase + rnd(0.8);
+        out.push({ t: start + i * 60000, ha: dayRhr + act + rnd(4), sa, sn: Math.round(sa - 1 - Math.random()) });
+      }
+    }
+  }
+  return out.sort((a, b) => a.t - b.t);
+}
+
+// =====================================================================
+//  TRANG THAI CHUNG
+// =====================================================================
+const SCEN = [
+  { id: 'normal', label: 'Bình thường' },
+  { id: 'hypoxia', label: 'Thiếu oxy máu' },
+  { id: 'tachy', label: 'Nhịp tim nhanh' },
+  { id: 'brady', label: 'Nhịp tim chậm' },
+  { id: 'irregular', label: 'Nhịp không đều' },
+  { id: 'apnea', label: 'Tụt SpO2 lặp lại' },
+  { id: 'bp', label: 'Huyết áp tăng (PTT ngắn)' },
+  { id: 'nofinger', label: 'Bỏ ngón tay ra' },
+];
+// Che do demo (du lieu gia lap): mo file voi #demo o cuoi duong dan, vd canh-bao-suc-khoe.html#demo
+const DEMO = location.hash === '#demo';
+const state = { profile: null, cfg: null, mode: DEMO ? 'sim' : 'off', scenario: 'normal', tick: 0, live: [], latest: null, assess: null, lastAlert: {}, minuteBuf: [], minuteKey: null };
+const $ = id => document.getElementById(id);
+
+function showScreen(name) {
+  $('scr-profiles').hidden = name !== 'profiles';
+  $('scr-setup').hidden = name !== 'setup';
+  $('scr-main').hidden = name !== 'main';
+  window.scrollTo(0, 0);
+}
+
+// =====================================================================
+//  MAN 1: CHON NGUOI DO
+// =====================================================================
+const initial = n => (n.trim().split(/\s+/).pop() || '?')[0].toUpperCase();
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+function renderProfiles() {
+  const box = $('plist'); box.innerHTML = '';
+  for (const p of profiles) {
+    const age = thisYear - p.year;
+    const extra = p.cond.length ? ' · ' + p.cond.map(c => COND_LABEL[c]).join(', ') : '';
+    const row = document.createElement('div'); row.className = 'prow';
+    row.innerHTML = `
+      <button class="pick" id="pick-${p.id}"><span class="avatar" style="background:${p.color}">${esc(initial(p.name))}</span>
+        <div style="min-width:0"><b>${esc(p.name)}${p.example ? '<span class="tag">Ví dụ</span>' : ''}</b>
+        <span>${p.sex === 'nu' ? 'Nữ' : 'Nam'} · ${age} tuổi · ${ACT_LABEL[p.act]}${esc(extra)}</span></div></button>
+      <button class="icon-btn" id="edit-${p.id}" title="Sửa hồ sơ" aria-label="Sửa hồ sơ ${esc(p.name)}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg></button>`;
+    row.querySelector('.pick').onclick = () => openMain(p);
+    row.querySelector('.icon-btn').onclick = () => openWizard(p);
+    box.appendChild(row);
+  }
+}
+$('btn-add').onclick = () => openWizard(null);
+
+// =====================================================================
+//  MAN 2: NHAP HO SO (4 buoc, giong cach Samsung Health hoi luc dau)
+// =====================================================================
+const STEPS = [
+  ['Thông tin cơ bản', 'Dùng để tính nhịp tim tối đa và ngưỡng theo độ tuổi.'],
+  ['Chỉ số cơ thể', 'Chiều cao và cân nặng giúp đánh giá nguy cơ tim mạch.'],
+  ['Mức độ vận động', 'Người tập luyện nhiều có nhịp tim nghỉ thấp hơn, AI sẽ không báo nhầm.'],
+  ['Tình trạng sức khỏe', 'Chọn những mục đúng với bạn, có thể bỏ trống. Hệ thống sẽ điều chỉnh ngưỡng cảnh báo cho phù hợp.'],
+];
+let wiz = { step: 1, draft: null, editing: null, confirmDelete: false };
+
+function openWizard(p) {
+  wiz = { step: 1, editing: p, confirmDelete: false, draft: p ? JSON.parse(JSON.stringify(p)) : { id: 'u' + Date.now(), name: '', sex: '', year: '', height: '', weight: '', act: '', cond: [], color: AVA_COLORS[profiles.length % AVA_COLORS.length] } };
+  const d = wiz.draft;
+  $('f-name').value = d.name; $('f-year').value = d.year; $('f-height').value = d.height; $('f-weight').value = d.weight;
+  document.querySelectorAll('input[name="act"]').forEach(r => r.checked = r.value === d.act);
+  document.querySelectorAll('#step-4 input').forEach(c => c.checked = d.cond.includes(c.value));
+  $('wiz-delete').hidden = !p; $('wiz-delete').textContent = 'Xóa hồ sơ này';
+  setSex(d.sex); updateBmi();
+  showScreen('setup'); renderWizard();
+}
+function setSex(s) {
+  wiz.draft.sex = s;
+  $('f-sex-nam').setAttribute('aria-pressed', s === 'nam');
+  $('f-sex-nu').setAttribute('aria-pressed', s === 'nu');
+  $('opt-preg').hidden = s !== 'nu';
+  if (s !== 'nu') $('opt-preg').querySelector('input').checked = false;
+}
+document.querySelectorAll('.seg button').forEach(b => b.onclick = () => setSex(b.dataset.sex));
+
+function updateBmi() {
+  const h = +$('f-height').value, w = +$('f-weight').value;
+  if (h >= 100 && h <= 230 && w >= 20 && w <= 250) {
+    const b = w / (h / 100) ** 2, [cat, col] = bmiCategory(b);
+    $('bmi-val').textContent = b.toFixed(1); $('bmi-val').style.color = col;
+    $('bmi-cat').textContent = cat; $('bmi-cat').style.color = col;
+    const pos = Math.min(100, Math.max(0, (b - 15) / 20 * 100));
+    $('bmi-mark').style.left = pos + '%'; $('bmi-mark').style.opacity = 1;
+  } else {
+    $('bmi-val').textContent = '--'; $('bmi-val').style.color = '';
+    $('bmi-cat').textContent = 'Nhập chiều cao và cân nặng'; $('bmi-cat').style.color = '';
+    $('bmi-mark').style.opacity = 0;
+  }
+}
+$('f-height').oninput = updateBmi; $('f-weight').oninput = updateBmi;
+
+function renderWizard() {
+  const s = wiz.step;
+  for (let i = 1; i <= 4; i++) $('step-' + i).hidden = i !== s;
+  document.querySelectorAll('#steps i').forEach((el, i) => el.classList.toggle('on', i < s));
+  $('wiz-eyebrow').textContent = `Bước ${s}/4` + (wiz.editing ? ' · Sửa hồ sơ' : ' · Tạo hồ sơ');
+  $('wiz-title').textContent = STEPS[s - 1][0];
+  $('wiz-desc').textContent = STEPS[s - 1][1];
+  $('wiz-back').textContent = s === 1 ? 'Hủy' : 'Quay lại';
+  $('wiz-next').textContent = s === 4 ? (wiz.editing ? 'Lưu hồ sơ' : 'Hoàn tất và bắt đầu đo') : 'Tiếp tục';
+  $('wiz-err').textContent = '';
+}
+
+function validateStep() {
+  const d = wiz.draft, s = wiz.step;
+  if (s === 1) {
+    d.name = $('f-name').value.trim(); d.year = +$('f-year').value;
+    if (!d.name) return 'Nhập họ và tên để phân biệt các hồ sơ.';
+    if (!d.sex) return 'Chọn giới tính.';
+    if (!d.year || d.year < thisYear - 110 || d.year > thisYear - 10) return `Năm sinh cần trong khoảng ${thisYear - 110}–${thisYear - 10}. Thiết bị dành cho người từ 10 tuổi.`;
+  }
+  if (s === 2) {
+    d.height = +$('f-height').value; d.weight = +$('f-weight').value;
+    if (!(d.height >= 100 && d.height <= 230)) return 'Chiều cao cần trong khoảng 100–230 cm.';
+    if (!(d.weight >= 20 && d.weight <= 250)) return 'Cân nặng cần trong khoảng 20–250 kg.';
+  }
+  if (s === 3) {
+    const r = document.querySelector('input[name="act"]:checked');
+    if (!r) return 'Chọn mức độ vận động gần đúng nhất với bạn.';
+    d.act = r.value;
+  }
+  if (s === 4) d.cond = [...document.querySelectorAll('#step-4 input:checked')].map(c => c.value);
+  return '';
+}
+
+$('wiz-next').onclick = () => {
+  const err = validateStep();
+  if (err) { $('wiz-err').textContent = err; return; }
+  if (wiz.step < 4) { wiz.step++; renderWizard(); return; }
+  const d = wiz.draft; delete d.example;
+  const i = profiles.findIndex(p => p.id === d.id);
+  if (i >= 0) profiles[i] = d;
+  else profiles.push(d);
+  saveProfiles(); renderProfiles();
+  if (wiz.editing) showScreen('profiles'); else openMain(d);
+};
+$('wiz-back').onclick = () => { if (wiz.step === 1) { showScreen(state.profile && !wiz.editing ? 'main' : 'profiles'); return; } wiz.step--; renderWizard(); };
+$('wiz-delete').onclick = () => {
+  if (!wiz.confirmDelete) { wiz.confirmDelete = true; $('wiz-delete').textContent = 'Bấm lần nữa để xóa vĩnh viễn'; return; }
+  profiles = profiles.filter(p => p.id !== wiz.draft.id); delete histories[wiz.draft.id]; delete sessionsStore[wiz.draft.id];
+  try { localStorage.removeItem('hews_hist_' + wiz.draft.id); localStorage.removeItem('hews_ses_' + wiz.draft.id); } catch (e) {}
+  if (state.profile && state.profile.id === wiz.draft.id) state.profile = null;
+  saveProfiles(); renderProfiles(); showScreen('profiles');
+};
+
+// =====================================================================
+//  MAN 3: DO
+// =====================================================================
+function openMain(p) {
+  state.profile = p; state.cfg = personalize(p);
+  state.live = []; state.lastAlert = {}; state.minuteBuf = []; state.minuteKey = null; state.scenario = 'normal';
+  $('who-ava').textContent = initial(p.name); $('who-ava').style.background = p.color;
+  $('who-name').textContent = p.name;
+  renderStrip();
+  resetSession();
+  showScreen('main'); showTab('live');
+  state.latest = null; state.assess = null;
+  $('sim-card').hidden = !DEMO;
+  if (state.mode === 'sim') { setConn('sim', 'Chế độ demo: dữ liệu mô phỏng'); for (let i = 0; i < 30; i++) simStep(); startSim(); }
+  else if (state.mode === 'ble') sendUserToDevice();
+  else { setConn('off', 'Chưa kết nối · bấm Kết nối để nhận dữ liệu'); render(); }
+  renderScenarios();
+}
+$('btn-who').onclick = () => { renderProfiles(); showScreen('profiles'); };
+
+function renderStrip() {
+  const c = state.cfg, [cat, col] = bmiCategory(c.bmi);
+  $('profile-strip').innerHTML = `
+    <div><span>Tuổi</span><b>${c.age}</b></div>
+    <div><span>BMI · ${cat}</span><b style="color:${col}">${c.bmi.toFixed(1)}</b></div>
+    <div><span>Nhịp tối đa</span><b>${c.maxHr}</b></div>
+    <div><span>Nhịp nghỉ dự kiến</span><b>${c.expectedRhr}</b></div>`;
+}
+
+function simStep() {
+  if (!state.profile) return;
+  state.tick++;
+  const base = state.cfg.expectedRhr, chronic = state.cfg.sp.watch === null;
+  let hr = base + rnd(3), sp = (chronic ? 93 : 97.5) + rnd(1), jit = 0.03, finger = true;
+  const t = state.tick;
+  switch (state.scenario) {
+    case 'hypoxia': sp = Math.max(84, (chronic ? 92 : 97) - t * 0.25) + rnd(0.8); hr = base + 16 + rnd(4); break;
+    case 'tachy': hr = 124 + rnd(5); break;
+    case 'brady': hr = 43 + rnd(2); break;
+    case 'irregular': hr = base + 10 + rnd(14); jit = 0.25; break;
+    case 'apnea': sp = (t % 40 > 25 ? (chronic ? 87 : 91) : (chronic ? 93 : 97)) + rnd(0.8); break;
+    case 'bp': hr = base + 8 + rnd(3); break;
+    case 'nofinger': finger = false; break;
+  }
+  const hrEcg = Math.round(hr + rnd(1));
+  onReading(finger
+    ? { hr: Math.round(hr + rnd(3)), spo2: Math.min(100, Math.max(70, Math.round(sp))), finger: true, ibi: Math.round(60000 / hr * (1 + rnd(jit))), hrEcg, ecgOk: true }
+    : { hr: 0, spo2: 0, finger: false, ibi: 0, hrEcg, ecgOk: true });
+}
+
+function onReading(r) {
+  if (!state.profile) return;
+  r.t = Date.now();
+  r.hrPpg = r.hr;
+  if (r.ecgOk && r.hrEcg > 0) r.hr = r.hrEcg;      // co dien tim thi uu tien vi chinh xac hon
+  state.latest = r;
+  state.live.push(r); if (state.live.length > 300) state.live.shift();
+  if (ses && ses.status === 'running') ses.ppg.push(r);
+  if (isValid(r)) aggregate(r);
+  state.assess = analyze(state.live, historyOf(state.profile), state.cfg);
+  maybeAlert(); render();
+}
+
+// Gop du lieu theo phut vao lich su cua nguoi dang do
+function aggregate(r) {
+  const key = Math.floor(r.t / 60000);
+  if (state.minuteKey !== null && key !== state.minuteKey && state.minuteBuf.length >= 10) {
+    const b = state.minuteBuf, sa = b.map(x => x.spo2);
+    historyOf(state.profile).push({ t: state.minuteKey * 60000, ha: mean(b.map(x => x.hr)), sa: mean(sa), sn: Math.min(...sa) });
+    if (state.mode === 'ble') saveHistory(state.profile);
+    state.minuteBuf = [];
+  } else if (key !== state.minuteKey) state.minuteBuf = [];
+  state.minuteKey = key; state.minuteBuf.push(r);
+}
+
+function setScenario(id) {
+  state.scenario = id; state.tick = 0; state.live = []; state.lastAlert = {};
+  for (let i = 0; i < 20; i++) simStep();
+  renderScenarios();
+}
+
+
+// =====================================================================
+//  DO TONG HOP 30 GIAY: DIEN TIM + SpO2 + THOI GIAN TRUYEN MACH (PTT)
+// =====================================================================
+const SES_SECONDS = 30, ECG_DISP_FS = 125, ECG_WIN = 4 * ECG_DISP_FS;
+const sessionsStore = {};
+function sessionsOf(p) {
+  if (!sessionsStore[p.id]) {
+    const out = [];
+    if (p.example) {                       // ho so vi du: 9 lan do mau truoc do
+      const c = personalize(p), basePtt = c.age >= 60 ? 196 : 248, now = Date.now();
+      for (let d = 9; d >= 1; d--) out.push({ t: now - d * 864e5 + rnd(3) * 36e5, hr: Math.round(c.expectedRhr + rnd(4)), spo2: Math.round((c.sp.watch === null ? 92.5 : 97) + rnd(1)), cv: 0.04 + Math.random() * 0.03, ptt: Math.round(basePtt + rnd(9)), sample: true });
+    }
+    sessionsStore[p.id] = p.example ? out : loadArr('hews_ses_' + p.id);
+  }
+  return sessionsStore[p.id];
+}
+
+let ses = null;                 // phien do hien tai
+let sesSimTimer = null, ecgDrawTimer = null, ecgLo = 0, ecgHi = 0;
+
+function stopSessionTimers() { clearInterval(sesSimTimer); clearInterval(ecgDrawTimer); sesSimTimer = ecgDrawTimer = null; }
+function resetSession() { stopSessionTimers(); ses = null; renderSession(); }
+
+async function startSession() {
+  if (!state.profile) return;
+  if (state.mode !== 'ble' && !DEMO) { showConnMsg('Hãy bấm Kết nối với HEALTH_BW16 trước khi đo.'); return; }
+  stopSessionTimers();
+  ses = { status: 'running', good: 0, ecgOk: false, fingerOk: false, ecg: [], beats: [], ppg: [], hint: 'Đang chờ tín hiệu từ thiết bị...', scaled: false };
+  renderSession();
+  ecgDrawTimer = setInterval(drawEcg, 80);
+  if (state.mode === 'ble') {
+    try { await bleWrite('START\n'); }
+    catch (e) { ses.hint = 'Không gửi được lệnh tới thiết bị. Kiểm tra kết nối Bluetooth rồi thử lại.'; updateRunHud(); }
+  } else startSimSession();
+}
+async function stopSession() {
+  if (state.mode === 'ble') { try { await bleWrite('STOP\n'); } catch (e) {} }
+  finishSession(true);
+}
+$('ses-start').onclick = startSession;
+$('ses-stop').onclick = stopSession;
+$('ses-again').onclick = startSession;
+
+// --- Du lieu tu thiet bi (hoac mo phong) ---
+function handleLine(line) {
+  if (!line) return;
+  const c = line[0];
+  if (c === 'E') {
+    const v = [];
+    for (let i = 1; i + 3 <= line.length; i += 3) v.push(parseInt(line.substr(i, 3), 16));
+    onEcg(v); return;
+  }
+  const p = line.split(',');
+  if (c === 'B') { onBeat(+p[1], +p[2]); return; }
+  if (c === 'T') { onProgress(+p[1], p[2] === '1', p[3] === '1'); return; }
+  if (c === 'S') { if (p[1] === 'END') finishSession(false); return; }
+  if (p.length >= 3) onReading({ hr: +p[0], spo2: +p[1], finger: p[2] === '1', ibi: +(p[3] || 0), hrEcg: +(p[4] || 0), ecgOk: p[5] === '1' });
+}
+function onEcg(vals) {
+  if (!ses || ses.status !== 'running') return;
+  for (const v of vals) if (!isNaN(v)) ses.ecg.push(v);
+  if (ses.ecg.length > ECG_WIN * 2) ses.ecg.splice(0, ses.ecg.length - ECG_WIN);
+}
+function onBeat(rr, ptt) {
+  if (!ses || ses.status !== 'running') return;
+  ses.beats.push({ rr, ptt }); updateRunHud();
+}
+function onProgress(good, ecgOk, fingerOk) {
+  if (!ses || ses.status !== 'running') return;
+  ses.good = good; ses.ecgOk = ecgOk; ses.fingerOk = fingerOk;
+  ses.hint = !ecgOk ? 'Chưa nhận được điện tim: kiểm tra ngón trỏ hai tay đã chạm đủ 3 miếng kim loại, hai tay không chạm nhau.'
+    : !fingerOk ? 'Chưa nhận được mạch: đặt ngón cái trái che kín cảm biến ở cạnh trên.' : '';
+  updateRunHud();
+  if (good >= SES_SECONDS) finishSession(false);
+}
+
+function finishSession(aborted) {
+  if (!ses || ses.status !== 'running') return;
+  stopSessionTimers();
+  if (aborted && ses.good < 10) { ses = null; renderSession(); return; }
+  ses.status = 'done';
+  ses.partial = aborted;
+  ses.result = analyzeSession(ses, state.cfg, state.profile);
+  if (ses.result.ok) {
+    const list = sessionsOf(state.profile);
+    list.push({ t: Date.now(), hr: Math.round(ses.result.hrEcg), spo2: ses.result.spo2 ? Math.round(ses.result.spo2) : null, cv: ses.result.cv, ptt: ses.result.ptt ? Math.round(ses.result.ptt) : null });
+    if (!state.profile.example && state.mode === 'ble') { if (list.length > 200) list.splice(0, list.length - 200); saveArr('hews_ses_' + state.profile.id, list); }
+  }
+  alertFindings(ses.result.findings);
+  renderSession();
+}
+
+// --- AI phan tich mot lan do tong hop ---
+function analyzeSession(s, cfg, p) {
+  const R = Math.round, F = [], notes = [];
+  const add = (id, sev, title, detail, advice) => F.push({ id, sev, title, detail, advice });
+  const rr0 = s.beats.map(b => b.rr).filter(v => v >= 300 && v <= 2000);
+  const medRR = median(rr0);
+  const rr = rr0.filter(v => v > 0.6 * medRR && v < 1.6 * medRR);   // bo nhip bat nham do nhieu
+  const ppg = s.ppg.filter(isValid);
+  const hrPpg = ppg.length >= 5 ? median(ppg.map(r => r.hr)) : null;
+  const spo2 = ppg.length >= 5 ? median(ppg.map(r => r.spo2)) : null;
+  if (rr.length < 10) return { ok: false, findings: [], summary: 'Chưa ghi được đủ nhịp từ điện tim. Kiểm tra lại cách đặt ngón tay lên 3 miếng kim loại rồi đo lại.' };
+
+  const hrEcg = 60000 / median(rr);
+  const cv = sd(rr) / mean(rr);
+  let s2 = 0; for (let i = 1; i < rr.length; i++) s2 += (rr[i] - rr[i - 1]) ** 2;
+  const rmssd = Math.sqrt(s2 / (rr.length - 1));
+  const ptts = s.beats.map(b => b.ptt).filter(v => v >= 120 && v <= 450);
+  const ptt = ptts.length >= 8 ? median(ptts) : null;
+  const past = sessionsOf(p).map(x => x.ptt).filter(Boolean);
+  const pttBase = past.length >= 3 ? median(past.slice(-10)) : null;
+  const pttChange = ptt && pttBase ? (ptt - pttBase) / pttBase : null;
+  const { hrHigh, hrLow, sp } = cfg;
+
+  if (hrPpg && Math.abs(hrEcg - hrPpg) > 10)
+    add('mismatch', 'watch', 'Hai cảm biến cho nhịp tim lệch nhau', `Điện tim đo được ${R(hrEcg)} BPM, cảm biến quang đo được ${R(hrPpg)} BPM. Thường do ngón cái đặt chưa kín hoặc tay cử động.`, 'Đặt lại ngón cái che kín cảm biến, ấn nhẹ rồi đo lại. Nhịp tim từ điện tim được ưu tiên vì chính xác hơn.');
+
+  if (hrEcg > hrHigh.danger) add('hr_high', 'danger', `Nhịp tim rất nhanh (${R(hrEcg)} BPM)`, `Điện tim cho nhịp vượt ngưỡng ${hrHigh.danger} BPM đặt theo tuổi của bạn.`, 'Nếu đang nghỉ mà nhịp vẫn rất nhanh, kèm chóng mặt, đau ngực, khó thở: gọi cấp cứu 115.');
+  else if (hrEcg > hrHigh.warning) add('hr_high', 'warning', `Nhịp tim nhanh (${R(hrEcg)} BPM)`, `Trên ${hrHigh.warning} BPM khi nghỉ là nhịp nhanh với hồ sơ của bạn.`, 'Nghỉ 10 phút rồi đo lại. Nếu thường xuyên xảy ra, nên khám tim mạch.');
+  if (hrEcg < hrLow.danger) add('hr_low', 'danger', `Nhịp tim rất chậm (${R(hrEcg)} BPM)`, `Dưới ${hrLow.danger} BPM có thể khiến não và cơ thể thiếu máu.`, 'Nếu có choáng, ngất, mệt lả: gọi cấp cứu 115.');
+  else if (hrEcg < hrLow.watch) add('hr_low', 'watch', `Nhịp tim chậm (${R(hrEcg)} BPM)`, `Dưới ngưỡng ${hrLow.watch} BPM đặt cho hồ sơ của bạn.`, 'Nếu kèm mệt mỏi, chóng mặt, hãy đi khám tim mạch.');
+
+  if (spo2 !== null) {
+    if (spo2 < sp.danger) add('spo2_low', 'danger', `SpO2 rất thấp (${R(spo2)}%)`, `Dưới ${sp.danger}% là thiếu oxy máu nghiêm trọng với hồ sơ của bạn.`, 'Đo lại ngay. Nếu vẫn thấp hoặc khó thở, tức ngực, môi tím: gọi cấp cứu 115.');
+    else if (spo2 < sp.warning) add('spo2_low', 'warning', `SpO2 thấp (${R(spo2)}%)`, `Thấp hơn ngưỡng ${sp.warning}% đặt cho hồ sơ của bạn.`, 'Ngồi nghỉ, thở sâu và đo lại sau 5 phút. Nếu kéo dài, hãy đi khám.');
+    else if (sp.watch !== null && spo2 < sp.watch) add('spo2_low', 'watch', `SpO2 hơi thấp (${R(spo2)}%)`, 'Hơi dưới mức thường gặp (95–100%).', 'Kiểm tra ngón cái có lạnh hoặc đặt lệch không, rồi đo lại.');
+  } else notes.push('Không đo được SpO2 lần này: ngón cái chưa che kín cảm biến.');
+
+  if (cv > cfg.irregularCv) {
+    const heart = cfg.risks.includes('Bệnh tim');
+    add('irregular_ecg', (cv > 0.2 || heart) ? 'warning' : 'watch', 'Điện tim cho thấy nhịp không đều',
+      `Khoảng cách giữa các đỉnh R dao động ${R(cv * 100)}% (thường dưới 10%), RMSSD ${R(rmssd)} ms. Nhịp không đều kéo dài là dấu hiệu gợi ý rung nhĩ.`,
+      heart ? 'Vì bạn có bệnh tim, hãy báo bác sĩ điều trị sớm và mang kết quả này theo.' : 'Ngồi yên đo lại thêm 2 lần. Nếu vẫn không đều, nên khám tim mạch và làm điện tâm đồ 12 chuyển đạo.');
+  }
+
+  if (pttChange !== null && pttChange <= -0.12)
+    add('ptt_low', 'watch', 'Thời gian truyền mạch ngắn hơn thường ngày',
+      `PTT lần này ${R(ptt)} ms, mức thường ngày của ${p.name} là ${R(pttBase)} ms (giảm ${R(-pttChange * 100)}%). Khi huyết áp tăng, thành mạch căng hơn nên sóng mạch truyền nhanh hơn.`,
+      'Ngồi nghỉ 5 phút rồi đo lại. Nếu PTT thấp ở nhiều lần đo, hãy kiểm tra bằng máy đo huyết áp.');
+  if (ptt === null) notes.push('Chưa tính được PTT: cần ngón cái đặt ổn định trên cảm biến trong suốt lần đo.');
+  else if (pttBase === null) notes.push(`AI cần thêm ${3 - past.length} lần đo để có mức PTT riêng của ${p.name}.`);
+  if (rr0.length - rr.length >= 3) notes.push(`Đã loại ${rr0.length - rr.length} nhịp bắt nhầm do nhiễu. Thả lỏng tay và giữ yên để kết quả chính xác hơn.`);
+  if (s.partial) notes.push(`Lần đo dừng sớm sau ${s.good} giây, kết quả kém tin cậy hơn.`);
+
+  F.sort((a, b) => SEV.indexOf(b.sev) - SEV.indexOf(a.sev));
+  const W = { normal: 0, watch: 12, warning: 28, danger: 50 };
+  const score = Math.min(100, R(F.reduce((a, f) => a + W[f.sev], 0) * cfg.riskMult));
+  const level = F.length ? F[0].sev : 'normal';
+  const summary = F.length ? F[0].title : 'Điện tim, nhịp tim và SpO2 đều trong ngưỡng bình thường ở lần đo này.';
+  return { ok: true, hrEcg, hrPpg, spo2, cv, rmssd, ptt, pttBase, pttChange, nBeats: rr.length, findings: F, score, level, summary, notes };
+}
+
+function alertFindings(F) {
+  const f = F.find(x => SEV.indexOf(x.sev) >= 2); if (!f) return;
+  $('toast-who').textContent = 'Cảnh báo sức khỏe · ' + state.profile.name;
+  $('toast-title').textContent = (f.sev === 'danger' ? 'Nguy hiểm: ' : 'Cảnh báo: ') + f.title;
+  $('toast-body').textContent = f.advice;
+  $('toast').classList.add('show');
+  nativeNotify($('toast-title').textContent, f.advice);
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').classList.remove('show'), 7000);
+}
+
+// --- Giao dien ---
+function renderSession() {
+  const st = ses ? ses.status : 'idle';
+  $('ses-idle').hidden = st !== 'idle';
+  $('ses-run').hidden = st !== 'running';
+  $('ses-done').hidden = st !== 'done';
+  if (st === 'running') { updateRunHud(); drawEcg(); }
+  if (st === 'done') $('ses-result').innerHTML = resultHtml(ses.result);
+}
+function updateRunHud() {
+  if (!ses || ses.status !== 'running') return;
+  const chip = (id, ok, label) => { const el = $(id); el.className = 'cchip ' + (ok ? 'ok' : 'bad'); el.textContent = label + (ok ? ': tốt' : ': chưa chạm'); };
+  chip('chip-ecg', ses.ecgOk, 'Điện tim'); chip('chip-ppg', ses.fingerOk, 'Ngón cái');
+  const rr = ses.beats.slice(-8).map(b => b.rr);
+  $('ses-hr').textContent = rr.length >= 3 ? Math.round(60000 / median(rr)) + ' BPM' : '-- BPM';
+  $('ses-bar').style.width = (ses.good / SES_SECONDS * 100) + '%';
+  $('ses-left').textContent = 'còn ' + (SES_SECONDS - ses.good) + ' giây';
+  $('ses-hint').textContent = ses.hint || '';
+}
+function resultHtml(r) {
+  if (!r.ok) return `<p class="ses-hint">${esc(r.summary)}</p>`;
+  const col = SEV_COLOR[r.level], R = Math.round;
+  const pttSub = r.pttChange !== null ? `${r.pttChange > 0 ? '+' : ''}${R(r.pttChange * 100)}% so với thường ngày` : 'đang học mức riêng';
+  return `
+    <div class="res-sum"><span class="pill" style="color:${col};background:color-mix(in srgb, ${col} 15%, transparent)">${SEV_LABEL[r.level]} · rủi ro ${r.score}</span><span class="eyebrow">${r.nBeats} nhịp đã phân tích</span></div>
+    <p style="margin:0 0 12px">${esc(r.summary)}</p>
+    <div class="res-grid">
+      <div><span>Nhịp tim (điện tim)</span><b style="color:var(--heart)">${R(r.hrEcg)}</b><small>BPM</small></div>
+      <div><span>Nhịp tim (quang)</span><b>${r.hrPpg ? R(r.hrPpg) : '--'}</b><small>BPM</small></div>
+      <div><span>SpO2</span><b style="color:var(--oxygen)">${r.spo2 ? R(r.spo2) : '--'}</b><small>%</small></div>
+      <div><span>Dao động nhịp</span><b>${R(r.cv * 100)}</b><small>%</small></div>
+      <div><span>RMSSD</span><b>${R(r.rmssd)}</b><small>ms</small></div>
+      <div><span>PTT</span><b>${r.ptt ? R(r.ptt) : '--'}</b><small>ms</small><small style="display:block;margin:2px 0 0">${pttSub}</small></div>
+    </div>
+    ${r.findings.length ? `<div class="findings">${r.findings.map(f => `
+      <details class="finding" style="--sev:${SEV_COLOR[f.sev]}">
+        <summary><b>${esc(f.title)}</b><span>${SEV_LABEL[f.sev]} · chạm để xem chi tiết</span></summary>
+        <p>${esc(f.detail)}</p><p class="advice">${esc(f.advice)}</p>
+      </details>`).join('')}</div>` : ''}
+    ${r.notes.map(n => `<p class="res-note">${esc(n)}</p>`).join('')}`;
+}
+
+// Song dien tim tren nen giay ECG (o nho 0.04 s, o lon 0.2 s)
+function drawEcg() {
+  const cv = $('c-ecg'); if (!cv || $('ses-run').hidden) return;
+  const { g, w, h } = prep(cv); if (!w) return;
+  const c = cssVar('--heart'), cols = 100, sq = w / cols;
+  g.lineWidth = 1;
+  for (let i = 0; i <= cols; i++) { g.strokeStyle = hexA(c, i % 5 ? 0.06 : 0.16); g.beginPath(); g.moveTo(i * sq, 0); g.lineTo(i * sq, h); g.stroke(); }
+  for (let k = 0, y = h; y >= 0; y -= sq, k++) { g.strokeStyle = hexA(c, k % 5 ? 0.06 : 0.16); g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+  const d = ses ? ses.ecg.slice(-ECG_WIN) : [];
+  if (d.length < 2) { g.fillStyle = cssVar('--muted'); g.font = '12px ' + cssVar('--font-ui'); g.fillText('Đang chờ tín hiệu điện tim...', 10, h / 2 + 4); return; }
+  let lo = Infinity, hi = -Infinity;
+  for (const v of d) { if (v < lo) lo = v; if (v > hi) hi = v; }
+  if (!ses.scaled) { ecgLo = lo; ecgHi = hi; ses.scaled = true; }
+  ecgLo += (lo - ecgLo) * 0.15; ecgHi += (hi - ecgHi) * 0.15;
+  const span = Math.max(ecgHi - ecgLo, 40), pad = 10, x0 = (ECG_WIN - d.length) / (ECG_WIN - 1) * w;
+  g.beginPath();
+  d.forEach((v, i) => { const x = x0 + i / (ECG_WIN - 1) * w, y = pad + (1 - (v - ecgLo) / span) * (h - 2 * pad); i ? g.lineTo(x, y) : g.moveTo(x, y); });
+  g.strokeStyle = c; g.lineWidth = 1.8; g.lineJoin = 'round'; g.stroke();
+}
+
+// --- Mo phong mot lan do (khi chua ket noi thiet bi) ---
+function startSimSession() {
+  const s = ses, sc = state.scenario, cfg = state.cfg;
+  const finger = sc !== 'nofinger';
+  const basePtt = (cfg.age >= 60 ? 196 : 248) * (sc === 'bp' ? 0.82 : 1);
+  const rrFor = () => {
+    switch (sc) {
+      case 'tachy': return 60000 / 124 * (1 + rnd(0.02));
+      case 'brady': return 60000 / 43 * (1 + rnd(0.02));
+      case 'irregular': return 450 + Math.random() * 650;
+      case 'hypoxia': return 60000 / (cfg.expectedRhr + 16) * (1 + rnd(0.03));
+      case 'bp': return 60000 / (cfg.expectedRhr + 8) * (1 + rnd(0.03));
+      default: return 60000 / cfg.expectedRhr * (1 + rnd(0.03));
+    }
+  };
+  const tpl = d => 0.12 * Math.exp(-(((d + 0.16) / 0.025) ** 2)) - 0.15 * Math.exp(-(((d + 0.025) / 0.008) ** 2))
+    + Math.exp(-((d / 0.012) ** 2)) - 0.25 * Math.exp(-(((d - 0.028) / 0.012) ** 2)) + 0.3 * Math.exp(-(((d - 0.25) / 0.05) ** 2));
+  const beats = [0.5]; let emit = 0, t = 0, tick = 0, good = 0;
+  sesSimTimer = setInterval(() => {
+    if (ses !== s || s.status !== 'running') return;
+    const vals = [];
+    for (let k = 0; k < 5; k++) {
+      t += 1 / ECG_DISP_FS;
+      while (beats[beats.length - 1] < t + 0.6) beats.push(beats[beats.length - 1] + rrFor() / 1000);
+      let v = 0;
+      for (let j = Math.max(0, emit - 3); j < beats.length; j++) { const d = t - beats[j]; if (d > -0.3 && d < 0.5) v += tpl(d); }
+      vals.push(Math.round(2048 + 520 * v + 50 * Math.sin(2 * Math.PI * 0.25 * t) + rnd(14)));
+    }
+    onEcg(vals);
+    while (emit < beats.length && beats[emit] <= t) {
+      if (emit > 0) onBeat(Math.round((beats[emit] - beats[emit - 1]) * 1000), finger ? Math.round(basePtt + rnd(8)) : 0);
+      emit++;
+    }
+    if (++tick % 25 === 0) {
+      if (finger && t > 2) good++;
+      onProgress(good, true, finger);
+    }
+  }, 40);
+}
+
+// Web Bluetooth
+const SVC = '6e400001-b5a3-f393-e0a9-e50e24dcca9e', TX = '6e400003-b5a3-f393-e0a9-e50e24dcca9e', RX = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
+let simTimer = null, bleDevice = null, rxChar = null, lineBuf = '';
+function showConnMsg(t) { $('conn-msg').textContent = t; $('conn-msg').hidden = !t; }
+async function sendUserToDevice() {
+  if (state.mode !== 'ble' || !state.profile) return;
+  const ascii = state.profile.name.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').slice(0, 14);
+  try { await bleWrite('USER:' + ascii + '\n'); } catch (e) {}
+}
+async function bleWrite(text) {
+  if (NATIVE) { NativeBle.postMessage(JSON.stringify({ cmd: 'write', data: text })); return; }
+  if (!rxChar) throw new Error('no rx');
+  await rxChar.writeValueWithoutResponse(new TextEncoder().encode(text));
+}
+function feedBle(chunk) {
+  lineBuf += chunk;
+  let i;
+  while ((i = lineBuf.indexOf('\n')) >= 0) {
+    const line = lineBuf.slice(0, i).trim(); lineBuf = lineBuf.slice(i + 1);
+    handleLine(line);
+  }
+  if (lineBuf.length > 400) lineBuf = '';
+}
+function onBleConnected() {
+  clearInterval(simTimer); state.mode = 'ble'; state.live = []; lineBuf = '';
+  setConn('on', 'Đã kết nối · đang đo cho ' + state.profile.name);
+  sendUserToDevice(); renderScenarios();
+}
+function onBleLost(msg) { bleDevice = null; rxChar = null; finishSession(true); goOffline(msg || 'Mất kết nối với thiết bị · bấm Kết nối để thử lại'); }
+
+// App Android: Bluetooth do phan app (Flutter) xu ly, trang web nhan du lieu qua cau noi NativeBle
+const NATIVE = typeof window.NativeBle !== 'undefined';
+let nativeConnected = false;
+window.onNativeBle = ev => {
+  if (ev.type === 'data') { if (nativeConnected) feedBle(ev.text); return; }
+  if (ev.type === 'busy') { setConn('busy', ev.msg || 'Đang kết nối...'); return; }
+  if (ev.type === 'connected') { nativeConnected = true; showConnMsg(''); if (state.profile) onBleConnected(); return; }
+  if (ev.type === 'disconnected') { const was = nativeConnected; nativeConnected = false; if (!state.profile) return; if (was) onBleLost(ev.msg); else { goOffline('Chưa kết nối · bấm Kết nối để nhận dữ liệu'); if (ev.msg) showConnMsg(ev.msg); } return; }
+};
+async function connectBle(showAll) {
+  showConnMsg('');
+  if (NATIVE) { NativeBle.postMessage(JSON.stringify({ cmd: nativeConnected ? 'disconnect' : 'connect' })); return; }
+  if (bleDevice) { try { bleDevice.gatt.disconnect(); } catch (e) {} return; }
+  if (!navigator.bluetooth) { showConnMsg('Trình duyệt này chưa cho phép kết nối Bluetooth. Bản xem thử đang chạy mô phỏng.'); return; }
+  try {
+    const opts = showAll === true
+      ? { acceptAllDevices: true, optionalServices: [SVC] }
+      : { filters: [{ name: 'HEALTH_BW16' }, { namePrefix: 'HEALTH' }, { services: [SVC] }], optionalServices: [SVC] };
+    const dev = await navigator.bluetooth.requestDevice(opts);
+    setConn('busy', 'Đang kết nối...');
+    const svc = await (await dev.gatt.connect()).getPrimaryService(SVC);
+    const tx = await svc.getCharacteristic(TX);
+    try { rxChar = await svc.getCharacteristic(RX); } catch (e) { rxChar = null; }
+    await tx.startNotifications();
+    tx.addEventListener('characteristicvaluechanged', e => feedBle(new TextDecoder().decode(e.target.value)));
+    dev.addEventListener('gattserverdisconnected', () => onBleLost());
+    bleDevice = dev; onBleConnected();
+  } catch (e) {
+    if (e && e.name === 'NotFoundError') {
+      $('conn-msg').innerHTML = 'Không thấy thiết bị? Nhấn RST trên BW16, chờ 3 giây rồi thử lại, hoặc <button id="btn-showall" class="linkbtn">hiện tất cả thiết bị Bluetooth</button>.';
+      $('conn-msg').hidden = false;
+      $('btn-showall').onclick = () => connectBle(true);
+    } else if (e && e.message && /GATT|service/i.test(e.message)) {
+      showConnMsg('Thiết bị vừa chọn không phải HEALTH_BW16 hoặc chưa chạy firmware. Nhấn RST trên BW16 rồi thử lại.');
+    } else showConnMsg('Không kết nối được Bluetooth trong khung xem này. Bản xem thử vẫn chạy mô phỏng.');
+    if (state.mode !== 'ble' && DEMO) startSim();
+  }
+}
+function setConn(kind, text) {
+  $('conn-dot').className = 'conn-dot' + (kind === 'on' ? ' on' : kind === 'sim' ? ' sim' : '');
+  $('conn-status').textContent = text;
+  $('btn-connect').textContent = kind === 'on' ? 'Ngắt' : 'Kết nối';
+}
+function goOffline(msg) {
+  if (DEMO) { startSim(); setConn('sim', 'Chế độ demo: dữ liệu mô phỏng'); return; }
+  clearInterval(simTimer); state.mode = 'off'; state.latest = null; state.assess = null;
+  setConn('off', msg); render();
+}
+function startSim() { state.mode = 'sim'; clearInterval(simTimer); simTimer = setInterval(simStep, 1000); renderScenarios(); }
+$('btn-connect').onclick = () => connectBle(false);
+
+// Thong bao
+let toastTimer;
+function maybeAlert() {
+  const a = state.assess; if (!a || !a.reliable) return;
+  const now = Date.now();
+  for (const f of a.findings) {
+    if (SEV.indexOf(f.sev) < 2) continue;
+    if (state.lastAlert[f.id] && now - state.lastAlert[f.id] < 5 * 60000) continue;
+    state.lastAlert[f.id] = now;
+    $('toast-who').textContent = 'Cảnh báo sức khỏe · ' + state.profile.name;
+    $('toast-title').textContent = (f.sev === 'danger' ? 'Nguy hiểm: ' : 'Cảnh báo: ') + f.title;
+    $('toast-body').textContent = f.advice;
+    $('toast').classList.add('show');
+    nativeNotify($('toast-title').textContent, f.advice);
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').classList.remove('show'), 6000);
+    break;
+  }
+}
+function nativeNotify(title, body) {
+  if (NATIVE && state.mode === 'ble') try { NativeBle.postMessage(JSON.stringify({ cmd: 'notify', title: title + ' · ' + state.profile.name, body })); } catch (e) {}
+}
+$('toast').addEventListener('click', e => e.currentTarget.classList.remove('show'));
+
+// =====================================================================
+//  VE BIEU DO
+// =====================================================================
+function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function prep(cv) {
+  const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+  if (cv.width !== w * dpr || cv.height !== h * dpr) { cv.width = w * dpr; cv.height = h * dpr; }
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
+  return { g, w, h };
+}
+function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
+
+function drawLive(cv, vals, min, max, color) {
+  const { g, w, h } = prep(cv); if (!w) return;
+  const pad = 6, N = 120;
+  const y = v => pad + (1 - (Math.min(max, Math.max(min, v)) - min) / (max - min)) * (h - pad * 2);
+  g.strokeStyle = hexA(cssVar('--muted'), 0.12); g.lineWidth = 1;
+  for (let i = 0; i <= 2; i++) { const yy = pad + i * (h - pad * 2) / 2; g.beginPath(); g.moveTo(0, yy); g.lineTo(w, yy); g.stroke(); }
+  const pts = vals.map((v, i) => v == null ? null : [(i + (N - vals.length)) / (N - 1) * w, y(v)]).filter(Boolean);
+  if (pts.length < 2) { g.fillStyle = cssVar('--muted'); g.font = '12px ' + cssVar('--font-ui'); g.fillText('Đang chờ dữ liệu...', 8, h / 2 + 4); return; }
+  const c = cssVar(color);
+  g.beginPath(); g.moveTo(pts[0][0], h); pts.forEach(p => g.lineTo(p[0], p[1])); g.lineTo(pts[pts.length - 1][0], h); g.closePath();
+  const grad = g.createLinearGradient(0, 0, 0, h); grad.addColorStop(0, hexA(c, 0.28)); grad.addColorStop(1, hexA(c, 0));
+  g.fillStyle = grad; g.fill();
+  g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]));
+  g.strokeStyle = c; g.lineWidth = 2.2; g.lineJoin = 'round'; g.stroke();
+  const last = pts[pts.length - 1]; g.beginPath(); g.arc(last[0] - 4, last[1], 4, 0, Math.PI * 2); g.fillStyle = c; g.fill();
+}
+
+// Do thi xu huong 24 gio: gom theo tung gio -> duong trung vi noi lien,
+// net dut o nhung gio khong do; vach mo = thap nhat-cao nhat trong gio; dai nguong binh thuong.
+function drawTrend24(cv, items, getMid, getLo, getHi, min, max, color, ticks, normal, unit) {
+  const { g, w, h } = prep(cv); if (!w) return;
+  const L = 34, B = 20, T = 10, Rr = 12, now = Date.now(), BIN = 3600000, NB = 24;
+  const x = t => L + (1 - (now - t) / 864e5) * (w - L - Rr);
+  const y = v => T + (1 - (Math.min(max, Math.max(min, v)) - min) / (max - min)) * (h - T - B);
+  const mut = cssVar('--muted'), c = cssVar(color), ok = cssVar('--ok');
+  g.fillStyle = hexA(ok, 0.08); g.fillRect(L, y(normal[1]), w - L - Rr, y(normal[0]) - y(normal[1]));
+  g.font = '10.5px ' + cssVar('--font-data'); g.fillStyle = hexA(ok, 0.8); g.textAlign = 'left';
+  g.fillText('bình thường', L + 4, y(normal[1]) + 12);
+  g.fillStyle = mut; g.textAlign = 'right';
+  for (const v of ticks) { g.strokeStyle = hexA(mut, 0.12); g.lineWidth = 1; g.beginPath(); g.moveTo(L, y(v)); g.lineTo(w - Rr, y(v)); g.stroke(); g.fillText(v, L - 6, y(v) + 3.5); }
+  g.textAlign = 'center';
+  for (const hh of [24, 18, 12, 6, 0]) g.fillText(hh ? `-${hh}h` : 'Bây giờ', Math.min(w - 26, Math.max(L + 12, x(now - hh * 36e5))), h - 5);
+  const bins = [];
+  for (const m of items) {
+    const k = Math.floor((now - m.t) / BIN); if (k < 0 || k >= NB) continue;
+    (bins[k] = bins[k] || []).push(m);
+  }
+  const pts = [];
+  for (let k = NB - 1; k >= 0; k--) {
+    const b = bins[k]; if (!b) continue;
+    pts.push({ k, t: Math.max(...b.map(m => m.t)) - (Math.max(...b.map(m => m.t)) - Math.min(...b.map(m => m.t))) / 2,
+      mid: median(b.map(getMid)), lo: pct(b.map(getLo), 0.1), hi: pct(b.map(getHi), 0.9) });
+  }
+  if (!pts.length) { g.fillStyle = mut; g.fillText('Chưa có dữ liệu trong 24 giờ qua', (L + w) / 2, h / 2); return; }
+  // vach thap nhat-cao nhat (bo 10% hai dau de khong bi nhieu keo dai)
+  for (const p of pts) {
+    g.strokeStyle = hexA(c, 0.28); g.lineWidth = 6; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(x(p.t), y(p.lo)); g.lineTo(x(p.t), y(p.hi)); g.stroke();
+  }
+  g.lineCap = 'butt';
+  // vung duoi duong
+  g.beginPath(); g.moveTo(x(pts[0].t), h - B);
+  pts.forEach(p => g.lineTo(x(p.t), y(p.mid))); g.lineTo(x(pts[pts.length - 1].t), h - B); g.closePath();
+  const grad = g.createLinearGradient(0, T, 0, h - B); grad.addColorStop(0, hexA(c, 0.18)); grad.addColorStop(1, hexA(c, 0));
+  g.fillStyle = grad; g.fill();
+  // duong noi: lien neu gio ke tiep, net dut neu co gio khong do
+  g.strokeStyle = c; g.lineWidth = 2.2; g.lineJoin = 'round';
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i];
+    g.setLineDash(a.k - b.k > 1 ? [5, 5] : []);
+    g.beginPath(); g.moveTo(x(a.t), y(a.mid)); g.lineTo(x(b.t), y(b.mid)); g.stroke();
+  }
+  g.setLineDash([]);
+  for (const p of pts) { g.beginPath(); g.arc(x(p.t), y(p.mid), 3.4, 0, Math.PI * 2); g.fillStyle = c; g.fill(); }
+  const last = pts[pts.length - 1];
+  g.beginPath(); g.arc(x(last.t), y(last.mid), 5, 0, Math.PI * 2); g.fillStyle = c; g.fill();
+  g.strokeStyle = cssVar('--bg'); g.lineWidth = 2; g.stroke();
+  g.font = '600 11.5px ' + cssVar('--font-data'); g.fillStyle = cssVar('--text'); g.textAlign = 'right';
+  const ly = y(last.mid) - 10 < T + 10 ? y(last.mid) + 20 : y(last.mid) - 10;
+  g.fillText(Math.round(last.mid) + ' ' + unit, x(last.t) - 6, ly);
+}
+
+function drawScatter24(cv, items, getV, min, max, color, ticks) {
+  const { g, w, h } = prep(cv); if (!w) return;
+  const L = 34, B = 20, T = 6, Rr = 6, now = Date.now();
+  const x = t => L + (1 - (now - t) / 864e5) * (w - L - Rr);
+  const y = v => T + (1 - (v - min) / (max - min)) * (h - T - B);
+  const mut = cssVar('--muted');
+  g.font = '10.5px ' + cssVar('--font-data'); g.fillStyle = mut; g.textAlign = 'right';
+  for (const v of ticks) { g.strokeStyle = hexA(mut, 0.12); g.beginPath(); g.moveTo(L, y(v)); g.lineTo(w - Rr, y(v)); g.stroke(); g.fillText(v, L - 6, y(v) + 3.5); }
+  g.textAlign = 'center';
+  for (const hh of [24, 18, 12, 6, 0]) g.fillText(hh ? `-${hh}h` : 'Bây giờ', Math.min(w - 24, Math.max(L + 10, x(now - hh * 36e5))), h - 5);
+  g.fillStyle = hexA(cssVar(color), 0.85);
+  for (const m of items) { g.beginPath(); g.arc(x(m.t), y(Math.min(max, Math.max(min, getV(m)))), 1.9, 0, Math.PI * 2); g.fill(); }
+}
+function drawBars(cv, days) {
+  const { g, w, h } = prep(cv); if (!w || !days.length) return;
+  const L = 8, B = 22, T = 18, min = 40, max = 90;
+  const n = days.length, slot = (w - L * 2) / n, bw = Math.min(30, slot * 0.55);
+  const mut = cssVar('--muted'), c = cssVar('--heart');
+  g.font = '10.5px ' + cssVar('--font-data'); g.textAlign = 'center';
+  days.forEach((d, i) => {
+    const cx = L + slot * (i + 0.5), bh = Math.max(4, (d.rhr - min) / (max - min) * (h - T - B)), last = i === n - 1;
+    const x0 = cx - bw / 2, y0 = h - B - bh, r = 6;
+    g.fillStyle = hexA(c, last ? 1 : 0.55);
+    g.beginPath(); g.moveTo(x0, h - B); g.lineTo(x0, y0 + r); g.quadraticCurveTo(x0, y0, x0 + r, y0); g.lineTo(x0 + bw - r, y0); g.quadraticCurveTo(x0 + bw, y0, x0 + bw, y0 + r); g.lineTo(x0 + bw, h - B); g.closePath(); g.fill();
+    g.fillStyle = last ? cssVar('--text') : mut; g.fillText(Math.round(d.rhr), cx, y0 - 5);
+    const dt = new Date(d.t); g.fillStyle = mut; g.fillText(`${dt.getDate()}/${dt.getMonth() + 1}`, cx, h - 6);
+  });
+}
+
+// =====================================================================
+//  RENDER MAN DO
+// =====================================================================
+function renderScenarios() {
+  const box = $('scenarios'); if (!DEMO) return; box.innerHTML = '';
+  for (const s of SCEN) {
+    const b = document.createElement('button');
+    b.className = 'chip'; b.textContent = s.label; b.id = 'sc-' + s.id;
+    b.setAttribute('aria-pressed', state.mode === 'sim' && state.scenario === s.id);
+    b.disabled = state.mode !== 'sim';
+    b.onclick = () => { setScenario(s.id); setConn('sim', 'Đang mô phỏng: ' + s.label); };
+    box.appendChild(b);
+  }
+}
+
+let openIds = new Set();
+function renderAI() {
+  const a = state.assess, cfg = state.cfg, card = $('ai-card');
+  card.querySelectorAll('details[data-id]').forEach(d => d.open ? openIds.add(d.dataset.id) : openIds.delete(d.dataset.id));
+  const ok = a && a.ready && a.reliable;
+  const col = ok ? SEV_COLOR[a.level] : 'var(--muted)';
+  const C = 2 * Math.PI * 34, off = C * (1 - (ok ? a.score / 100 : 0));
+  card.style.borderColor = ok ? `color-mix(in srgb, ${col} 45%, transparent)` : '';
+  const notes = cfg.notes.length ? cfg.notes : [['Ngưỡng chuẩn', 'hồ sơ chưa có yếu tố cần điều chỉnh, dùng ngưỡng y khoa thông thường']];
+  card.innerHTML = `
+    <div class="ai-head">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 5.4L19 9l-5.2 1.6L12 16l-1.8-5.4L5 9l5.2-1.6zM19 14l.9 2.6 2.6.9-2.6.9L19 21l-.9-2.6-2.6-.9 2.6-.9z"/></svg>
+      <h2 class="card-title">Đánh giá AI</h2>
+      ${ok ? `<span class="pill" style="color:${col};background:color-mix(in srgb, ${col} 15%, transparent)">${SEV_LABEL[a.level]}</span>` : ''}
+    </div>
+    <div class="ai-body">
+      <div class="ring">
+        <svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="7"/>
+        <circle cx="40" cy="40" r="34" fill="none" stroke="${col}" stroke-width="7" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${off}" style="transition:stroke-dashoffset .5s"/></svg>
+        <div class="score"><b style="color:${col}">${ok ? a.score : '--'}</b><span>rủi ro</span></div>
+      </div>
+      <p class="ai-summary">${esc(a ? a.summary : 'Chưa có dữ liệu. Kết nối thiết bị rồi đặt ngón tay lên cảm biến.')}</p>
+    </div>
+    <div class="stats">
+      ${ok && a.cv != null ? `<span class="stat">Dao động nhịp<b>${Math.round(a.cv * 100)}%</b></span>` : ''}
+      ${ok && a.rmssd != null ? `<span class="stat">Biến thiên (ước lượng)<b>${Math.round(a.rmssd)} ms</b></span>` : ''}
+      <span class="stat">AI đã học<b>${a ? a.learned : 0} phút</b></span>
+      ${cfg.risks.map(r => `<span class="risk">${esc(r)}</span>`).join('')}
+    </div>
+    ${ok && a.findings.length ? `<div class="findings">${a.findings.map(f => `
+      <details class="finding" data-id="${f.id}" style="--sev:${SEV_COLOR[f.sev]}" ${openIds.has(f.id) ? 'open' : ''}>
+        <summary><b>${esc(f.title)}</b><span>${SEV_LABEL[f.sev]} · chạm để xem chi tiết</span></summary>
+        <p>${esc(f.detail)}</p><p class="advice">${esc(f.advice)}</p>
+      </details>`).join('')}</div>` : ''}
+    <details class="adjust" data-id="__adjust" ${openIds.has('__adjust') ? 'open' : ''}>
+      <summary>Ngưỡng đã điều chỉnh theo hồ sơ của ${esc(state.profile.name)}</summary>
+      <ul>${notes.map(n => `<li><b>${esc(n[0])}:</b> ${esc(n[1])}</li>`).join('')}
+        ${cfg.risks.length ? `<li><b>Yếu tố nguy cơ:</b> điểm rủi ro được nhân ${cfg.riskMult.toFixed(2)} lần</li>` : ''}</ul>
+    </details>`;
+}
+
+function render() {
+  if ($('view-live').hidden) return;
+  const r = state.latest, ok = r && isValid(r);
+  const ecgNow = r && r.ecgOk && r.hrEcg > 0;
+  $('v-hr').textContent = ecgNow ? r.hrEcg : (ok ? r.hrPpg : '--');
+  $('hr-src').textContent = ecgNow ? `Điện tim · quang ${r.finger && r.hrPpg ? r.hrPpg : '--'}` : (ok ? 'Cảm biến quang' : '');
+  $('v-sp').textContent = ok ? r.spo2 : '--';
+  $('heart-ico').classList.toggle('beat', !!ok);
+  $('finger-hint').hidden = !(r && !r.finger && !ecgNow);
+  const last = state.live.slice(-120);
+  drawLive($('c-hr'), last.map(x => isValid(x) ? x.hr : null), 40, 160, '--heart');
+  drawLive($('c-sp'), last.map(x => isValid(x) ? x.spo2 : null), 80, 100, '--oxygen');
+  renderAI();
+}
+
+function sessionsHtml(p) {
+  const list = sessionsOf(p).slice(-8).reverse();
+  if (!list.length) return `<div class="card"><h2 class="card-title">Các lần đo tổng hợp</h2><p class="sub">Chưa có lần đo nào. Bấm “Bắt đầu đo 30 giây” ở tab Đo trực tiếp.</p></div>`;
+  const d = t => { const x = new Date(t); return `${x.getDate()}/${x.getMonth() + 1} ${String(x.getHours()).padStart(2, '0')}:${String(x.getMinutes()).padStart(2, '0')}`; };
+  return `<div class="card"><h2 class="card-title">Các lần đo tổng hợp</h2>
+    <p class="sub">PTT ngắn dần qua nhiều lần đo có thể là dấu hiệu huyết áp tăng.${list.some(x => x.sample) ? ' Các dòng cũ của hồ sơ ví dụ là dữ liệu mẫu.' : ''}</p>
+    <div class="table-scroll"><table class="ses-table"><thead><tr><th>Thời điểm</th><th>Nhịp tim</th><th>SpO2</th><th>Dao động</th><th>PTT</th></tr></thead><tbody>
+    ${list.map(x => `<tr><td>${d(x.t)}</td><td>${x.hr} BPM</td><td>${x.spo2 ? x.spo2 + '%' : '--'}</td><td>${Math.round(x.cv * 100)}%</td><td>${x.ptt ? x.ptt + ' ms' : '--'}</td></tr>`).join('')}
+    </tbody></table></div></div>`;
+}
+
+function renderHistory() {
+  const p = state.profile, hist = historyOf(p), box = $('view-hist');
+  const day = hist.filter(m => m.t > Date.now() - 864e5);
+  if (!hist.length) {
+    box.innerHTML = `<div class="card empty"><b>Chưa có dữ liệu của ${esc(p.name)}</b>Mỗi phút đo hợp lệ sẽ được lưu vào hồ sơ này để AI học thói quen. Cần khoảng ${MIN_LEARN} phút để AI có mức nền riêng.</div>` + sessionsHtml(p);
+    return;
+  }
+  box.innerHTML = `
+    ${p.example ? '<p class="sample-note">Hồ sơ ví dụ: lịch sử 7 ngày là dữ liệu mẫu để xem giao diện.</p>' : ''}
+    <div class="summary-row">
+      <div class="sum"><span>Nhịp nghỉ</span><b style="color:var(--heart)">${day.length ? Math.round(pct(day.map(m => m.ha), 0.25)) : '--'}</b></div>
+      <div class="sum"><span>SpO2 thấp nhất</span><b style="color:var(--oxygen)">${day.length ? Math.min(...day.map(m => m.sn)) + '%' : '--'}</b></div>
+      <div class="sum"><span>Phút đã đo</span><b style="color:var(--ok)">${day.length}</b></div>
+    </div>
+    <div class="card"><h2 class="card-title">Nhịp tim 24 giờ</h2><p class="sub">Mỗi điểm là trung vị của 1 giờ, vạch mờ là khoảng dao động, nét đứt là những giờ không đo. Đơn vị BPM.</p><canvas id="h-hr" class="hist"></canvas></div>
+    <div class="card"><h2 class="card-title">SpO2 24 giờ</h2><p class="sub">Mỗi điểm là trung vị của 1 giờ, vạch mờ là khoảng dao động, nét đứt là những giờ không đo. Đơn vị %.</p><canvas id="h-sp" class="hist"></canvas></div>
+    <div class="card"><h2 class="card-title">Nhịp tim nghỉ theo ngày</h2><p class="sub">Tăng dần nhiều ngày có thể là dấu hiệu sớm của ốm, stress hoặc thiếu ngủ.</p><canvas id="h-rhr" class="hist"></canvas></div>`;
+  drawTrend24($('h-hr'), day, m => m.ha, m => m.ha, m => m.ha, 40, 160, '--heart', [40, 70, 100, 130, 160], [60, 100], 'BPM');
+  drawTrend24($('h-sp'), day, m => m.sa, m => m.sn, m => m.sa, 80, 100, '--oxygen', [80, 85, 90, 95, 100], [95, 100], '%');
+  drawBars($('h-rhr'), restingByDay(hist).slice(-7));
+  box.insertAdjacentHTML('beforeend', sessionsHtml(p));
+}
+
+function showTab(which) {
+  const live = which === 'live';
+  $('view-live').hidden = !live; $('view-hist').hidden = live;
+  $('tab-live').setAttribute('aria-selected', live); $('tab-hist').setAttribute('aria-selected', !live);
+  if (live) render(); else renderHistory();
+}
+$('tab-live').onclick = () => showTab('live');
+$('tab-hist').onclick = () => showTab('hist');
+window.addEventListener('resize', () => { if ($('scr-main').hidden) return; $('view-hist').hidden ? render() : renderHistory(); });
+
+// Khoi dong: man chon nguoi do
+loadProfiles();
+renderProfiles();
+showScreen('profiles');
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+APP ANDROID "CANH BAO SUC KHOE" v3 - GitHub tu tao file APK, laptop khong can cai gi.
+
+Cac buoc (chi tiet trong tin nhan cua Claude):
+1. Dang ky tai khoan mien phi tai github.com
+2. Tao kho moi (New repository), dat ten canh-bao-suc-khoe, chon Public
+3. Vao tab Actions > "set up a workflow yourself" > dan noi dung file tao_apk.yml.txt > Commit changes
+4. Vao tab Code > Add file > Upload files > keo tha TAT CA file/thu muc trong thu muc nay > Commit changes
+5. Cho khoang 8-10 phut > tab Actions thay dau tick xanh > muc Releases ben phai co file CanhBaoSucKhoe.apk
